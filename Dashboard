@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Esports Social Media Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #1f2937;
+  --border:    #30363d;
+  --text:      #e6edf3;
+  --muted:     #8b949e;
+  --accent:    #58a6ff;
+  --tw:        #1DA1F2;
+  --ig:        #E1306C;
+  --tt:        #69C9D0;
+  --fb:        #1877F2;
+  --green:     #3fb950;
+  --radius:    8px;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.header h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+.header .meta { color: var(--muted); font-size: 12px; margin-left: auto; text-align: right; }
+.header .meta strong { color: var(--text); }
+
+.filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.filter-group label { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600;
+  transition: all 0.15s; user-select: none;
+}
+.pill.active { color: #fff; border-color: transparent; }
+.pill.tw.active  { background: var(--tw); }
+.pill.ig.active  { background: var(--ig); }
+.pill.tt.active  { background: var(--tt); color: #111; }
+.pill.fb.active  { background: var(--fb); }
+.pill.main.active { background: #3fb950; }
+.pill.cs.active   { background: #f0883e; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+/* ── Timeline ─────────────────────────────────────────────────── */
+.timeline-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+  margin-bottom: 24px;
+}
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.timeline-btn {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.timeline-btn:hover { background: #79bbff; }
+.timeline-btn.playing { background: #f0883e; }
+.timeline-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.timeline-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg);
+}
+.timeline-date {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 130px;
+  text-align: center;
+}
+.timeline-hint {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.timeline-latest-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.timeline-latest-btn:hover { color: var(--text); border-color: var(--accent); }
+.timeline-latest-btn.at-latest { color: var(--green); border-color: var(--green); }
+.timeline-speed {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Stats summary ────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.stat-card .value { font-size: 24px; font-weight: 700; color: var(--text); }
+.stat-card .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Charts ───────────────────────────────────────────────────── */
+.charts-row {
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.chart-card h2 {
+  font-size: 14px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;
+}
+.chart-wrap { position: relative; height: 380px; }
+.chart-wrap-tall { position: relative; height: 640px; }
+
+/* ── Table ────────────────────────────────────────────────────── */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.table-card h2 {
+  font-size: 14px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 16px 20px 12px; border-bottom: 1px solid var(--border);
+}
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 14px; text-align: left; white-space: nowrap; }
+th {
+  background: var(--surface2); color: var(--muted); font-size: 11px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+}
+th:hover { color: var(--text); }
+th.sorted { color: var(--accent); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:hover { background: var(--surface2); }
+tbody tr:last-child { border-bottom: none; }
+.rank { color: var(--muted); font-weight: 700; width: 40px; }
+.org-name { font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.expand-btn {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  color: var(--muted); cursor: pointer; padding: 1px 6px; font-size: 11px;
+  transition: all 0.1s;
+}
+.expand-btn:hover { color: var(--text); border-color: var(--accent); }
+.platform-cell { color: var(--text); font-variant-numeric: tabular-nums; }
+.platform-cell.zero { color: var(--muted); }
+.total-cell { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.failed-cell { color: var(--muted); font-style: italic; }
+
+.sub-rows { display: none; }
+.sub-rows.open { display: table-row-group; }
+.sub-row td { background: #0a0f16 !important; padding: 8px 14px 8px 48px; }
+.sub-row:hover td { background: #111827 !important; }
+.sub-row .account-count { font-variant-numeric: tabular-nums; }
+.account-toggle { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+a.profile-link {
+  color: var(--text); text-decoration: none;
+  border-bottom: 1px dashed var(--border); transition: color 0.15s, border-color 0.15s;
+}
+a.profile-link:hover { color: var(--accent); border-color: var(--accent); }
+.visit-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--muted); font-size: 10px; padding: 2px 6px;
+  cursor: pointer; text-decoration: none; transition: all 0.15s; margin-left: 8px;
+}
+.visit-btn:hover { color: var(--text); border-color: var(--accent); }
+.account-toggle input[type=checkbox] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--accent); }
+
+/* ── Trend chart ──────────────────────────────────────────────── */
+.trend-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 24px;
+}
+.trend-card h2 {
+  font-size: 14px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+}
+.trend-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+select {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+}
+select:focus { outline: none; border-color: var(--accent); }
+
+.footer {
+  text-align: center; color: var(--muted); font-size: 11px;
+  padding: 20px; border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div><h1>Esports Social Media Dashboard</h1></div>
+  <div class="meta">
+    <strong>Last scraped:</strong> 19 Mar 2026, 10:32<br/>
+    24 organizations &middot; 4 platforms &middot; 15 snapshot(s)
+  </div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    <label>Platforms</label>
+    <span class="pill tw active" data-filter="platform" data-value="twitter"  onclick="toggleFilter(this)"><span class="dot" style="background:var(--tw)"></span> X / Twitter</span>
+    <span class="pill ig active" data-filter="platform" data-value="instagram" onclick="toggleFilter(this)"><span class="dot" style="background:var(--ig)"></span> Instagram</span>
+    <span class="pill tt active" data-filter="platform" data-value="tiktok"   onclick="toggleFilter(this)"><span class="dot" style="background:var(--tt)"></span> TikTok</span>
+    <span class="pill fb active" data-filter="platform" data-value="facebook"  onclick="toggleFilter(this)"><span class="dot" style="background:var(--fb)"></span> Facebook</span>
+  </div>
+  <div class="filter-group">
+    <label>Account Types</label>
+    <span class="pill main active" data-filter="type" data-value="main" onclick="toggleFilter(this)">Main</span>
+    <span class="pill cs active" data-filter="type" data-value="cs" onclick="toggleFilter(this)">CS&#8209;Specific</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Timeline scrubber -->
+  <div class="timeline-card" id="timeline-card">
+    <div class="timeline-row">
+      <button class="timeline-btn" id="play-btn" onclick="togglePlay()" title="Play / Pause">&#9654;</button>
+      <select class="timeline-speed" id="speed-select" onchange="setSpeed(this.value)" title="Playback speed">
+        <option value="2000">Slow</option>
+        <option value="1000" selected>Normal</option>
+        <option value="400">Fast</option>
+      </select>
+      <input type="range" class="timeline-slider" id="timeline-slider" min="0" max="0" value="0"
+        oninput="onSliderInput(this.value)"/>
+      <span class="timeline-date" id="timeline-date">—</span>
+      <button class="timeline-latest-btn" id="latest-btn" onclick="jumpToLatest()">Latest</button>
+    </div>
+  </div>
+
+  <div class="stats-row" id="stats-row"></div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <h2>Follower Rankings &mdash; Platform Breakdown</h2>
+      <div class="chart-wrap-tall"><canvas id="breakdownChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <h2>Detailed Rankings <span style="color:var(--muted);font-weight:400;font-size:12px;margin-left:8px">(click column headers to sort &middot; click org name to expand accounts)</span></h2>
+    <div class="table-scroll">
+      <table id="main-table">
+        <thead>
+          <tr>
+            <th class="rank">#</th>
+            <th data-col="name" onclick="sortTable('name')">Organization</th>
+            <th data-col="twitter"   onclick="sortTable('twitter')"   style="color:var(--tw)">X / Twitter</th>
+            <th data-col="instagram" onclick="sortTable('instagram')" style="color:var(--ig)">Instagram</th>
+            <th data-col="tiktok"    onclick="sortTable('tiktok')"    style="color:var(--tt)">TikTok</th>
+            <th data-col="facebook"  onclick="sortTable('facebook')"  style="color:var(--fb)">Facebook</th>
+            <th data-col="total"     onclick="sortTable('total')" class="sorted">Total</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="trend-card">
+    <h2>Historical Trend</h2>
+    <div class="trend-controls">
+      <select id="trend-org-select" onchange="renderTrendChart()">
+        <option value="">— Select an organisation —</option>
+      </select>
+      <select id="trend-platform-select" onchange="renderTrendChart()">
+        <option value="total">All platforms (total)</option>
+        <option value="twitter">X / Twitter</option>
+        <option value="instagram">Instagram</option>
+        <option value="tiktok">TikTok</option>
+        <option value="facebook">Facebook</option>
+      </select>
+    </div>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+  </div>
+
+</div>
+
+<div class="footer">Data scraped from public social media profiles &middot; Refreshed daily</div>
+
+<script>
+const CONFIG  = {"organizations": [{"id": "faze-clan", "name": "FaZe Clan", "accounts": [{"platform": "twitter", "handle": "FaZeClan", "label": "FaZe Clan", "type": "main"}, {"platform": "twitter", "handle": "FaZeEsports", "label": "FaZe Esports", "type": "cs"}, {"platform": "instagram", "handle": "fazeclan", "label": "FaZe Clan", "type": "main"}, {"platform": "tiktok", "handle": "fazeclan", "label": "FaZe Clan", "type": "main"}, {"platform": "facebook", "handle": "TheFaZeClan", "label": "FaZe Clan", "type": "main"}]}, {"id": "loud", "name": "LOUD", "accounts": [{"platform": "twitter", "handle": "LOUDgg", "label": "LOUD", "type": "main"}, {"platform": "instagram", "handle": "loudgg", "label": "LOUD", "type": "main"}, {"platform": "tiktok", "handle": "loudgg", "label": "LOUD", "type": "main"}, {"platform": "facebook", "handle": "LOUDgg", "label": "LOUD", "type": "main"}]}, {"id": "100-thieves", "name": "100 Thieves", "accounts": [{"platform": "twitter", "handle": "100Thieves", "label": "100 Thieves", "type": "main"}, {"platform": "instagram", "handle": "100thieves", "label": "100 Thieves", "type": "main"}, {"platform": "tiktok", "handle": "100thieves", "label": "100 Thieves", "type": "main"}, {"platform": "facebook", "handle": "100Thieves", "label": "100 Thieves", "type": "main"}]}, {"id": "g2-esports", "name": "G2 Esports", "accounts": [{"platform": "twitter", "handle": "G2esports", "label": "G2 Esports", "type": "main"}, {"platform": "instagram", "handle": "g2esports", "label": "G2 Esports", "type": "main"}, {"platform": "tiktok", "handle": "g2esports", "label": "G2 Esports", "type": "main"}, {"platform": "facebook", "handle": "G2esports", "label": "G2 Esports", "type": "main"}]}, {"id": "natus-vincere", "name": "Natus Vincere (NAVI)", "accounts": [{"platform": "twitter", "handle": "natusvincere", "label": "NAVI", "type": "main"}, {"platform": "instagram", "handle": "natus_vincere_official", "label": "NAVI", "type": "main"}, {"platform": "tiktok", "handle": "navi_gg", "label": "NAVI", "type": "main"}, {"platform": "facebook", "handle": "NatusVincere", "label": "NAVI", "type": "main"}]}, {"id": "fnatic", "name": "Fnatic", "accounts": [{"platform": "twitter", "handle": "FNATIC", "label": "Fnatic", "type": "main"}, {"platform": "instagram", "handle": "fnatic", "label": "Fnatic", "type": "main"}, {"platform": "tiktok", "handle": "fnatic", "label": "Fnatic", "type": "main"}, {"platform": "facebook", "handle": "fnatic", "label": "Fnatic", "type": "main"}]}, {"id": "t1", "name": "T1", "accounts": [{"platform": "twitter", "handle": "T1", "label": "T1", "type": "main"}, {"platform": "instagram", "handle": "t1lol", "label": "T1", "type": "main"}, {"platform": "tiktok", "handle": "t1", "label": "T1", "type": "main"}, {"platform": "facebook", "handle": "T1LoL", "label": "T1", "type": "main"}]}, {"id": "team-liquid", "name": "Team Liquid", "accounts": [{"platform": "twitter", "handle": "TeamLiquid", "label": "Team Liquid", "type": "main"}, {"platform": "instagram", "handle": "teamliquid", "label": "Team Liquid", "type": "main"}, {"platform": "tiktok", "handle": "liquid", "label": "Team Liquid", "type": "main"}, {"platform": "facebook", "handle": "TeamLiquid", "label": "Team Liquid", "type": "main"}]}, {"id": "cloud9", "name": "Cloud9", "accounts": [{"platform": "twitter", "handle": "Cloud9", "label": "Cloud9", "type": "main"}, {"platform": "instagram", "handle": "cloud9gg", "label": "Cloud9", "type": "main"}, {"platform": "tiktok", "handle": "cloud9", "label": "Cloud9", "type": "main"}, {"platform": "facebook", "handle": "Cloud9", "label": "Cloud9", "type": "main"}]}, {"id": "team-vitality", "name": "Team Vitality", "accounts": [{"platform": "twitter", "handle": "TeamVitality", "label": "Team Vitality", "type": "main"}, {"platform": "instagram", "handle": "teamvitality", "label": "Team Vitality", "type": "main"}, {"platform": "tiktok", "handle": "teamvitality", "label": "Team Vitality", "type": "main"}, {"platform": "facebook", "handle": "TeamVitality", "label": "Team Vitality", "type": "main"}]}, {"id": "furia", "name": "FURIA", "accounts": [{"platform": "twitter", "handle": "FURIA", "label": "FURIA", "type": "main"}, {"platform": "instagram", "handle": "furiagg", "label": "FURIA", "type": "main"}, {"platform": "tiktok", "handle": "furiagg", "label": "FURIA", "type": "main"}, {"platform": "facebook", "handle": "FURIAgg", "label": "FURIA", "type": "main"}]}, {"id": "nrg", "name": "NRG", "accounts": [{"platform": "twitter", "handle": "NRGgg", "label": "NRG", "type": "main"}, {"platform": "instagram", "handle": "nrggram", "label": "NRG", "type": "main"}, {"platform": "tiktok", "handle": "nrg", "label": "NRG", "type": "main"}, {"platform": "facebook", "handle": "NRGwin", "label": "NRG", "type": "main"}]}, {"id": "astralis", "name": "Astralis", "accounts": [{"platform": "twitter", "handle": "Astralisgg", "label": "Astralis", "type": "main"}, {"platform": "instagram", "handle": "astralis", "label": "Astralis", "type": "main"}, {"platform": "tiktok", "handle": "astralis", "label": "Astralis", "type": "main"}, {"platform": "facebook", "handle": "Astralisgg", "label": "Astralis", "type": "main"}]}, {"id": "team-spirit", "name": "Team Spirit", "accounts": [{"platform": "twitter", "handle": "Team__Spirit", "label": "Team Spirit", "type": "main"}, {"platform": "instagram", "handle": "team__spirit", "label": "Team Spirit", "type": "main"}, {"platform": "tiktok", "handle": "teamspirit", "label": "Team Spirit", "type": "main"}, {"platform": "facebook", "handle": "teamspiritpage", "label": "Team Spirit", "type": "main"}]}, {"id": "virtus-pro", "name": "Virtus.pro", "accounts": [{"platform": "twitter", "handle": "virtuspro", "label": "Virtus.pro", "type": "main"}, {"platform": "instagram", "handle": "virtuspro", "label": "Virtus.pro", "type": "main"}, {"platform": "tiktok", "handle": "virtuspro", "label": "Virtus.pro", "type": "main"}, {"platform": "facebook", "handle": "www.virtus.pro", "label": "Virtus.pro", "type": "main"}]}, {"id": "mouz", "name": "MOUZ", "accounts": [{"platform": "twitter", "handle": "mousesports", "label": "MOUZ", "type": "main"}, {"platform": "instagram", "handle": "mousesports", "label": "MOUZ", "type": "main"}, {"platform": "tiktok", "handle": "mousesports", "label": "MOUZ", "type": "main"}, {"platform": "facebook", "handle": "mousesports", "label": "MOUZ", "type": "main"}]}, {"id": "team-falcons", "name": "Team Falcons", "accounts": [{"platform": "twitter", "handle": "TeamFalconsGG", "label": "Team Falcons", "type": "main"}, {"platform": "instagram", "handle": "teamfalconsgg", "label": "Team Falcons", "type": "main"}, {"platform": "tiktok", "handle": "falcons.esports", "label": "Team Falcons", "type": "main"}, {"platform": "facebook", "handle": "teamfalcongg", "label": "Team Falcons", "type": "main"}]}, {"id": "og-esports", "name": "OG Esports", "accounts": [{"platform": "twitter", "handle": "OGesports", "label": "OG Esports", "type": "main"}, {"platform": "instagram", "handle": "ogesports", "label": "OG Esports", "type": "main"}, {"platform": "tiktok", "handle": "ogesportsofficial", "label": "OG Esports", "type": "main"}, {"platform": "facebook", "handle": "OGDota2", "label": "OG Dota 2", "type": "main"}, {"platform": "facebook", "handle": "OGcounterstrike", "label": "OG CS", "type": "cs"}]}, {"id": "team-secret", "name": "Team Secret", "accounts": [{"platform": "twitter", "handle": "teamsecret", "label": "Team Secret", "type": "main"}, {"platform": "instagram", "handle": "teamsecret", "label": "Team Secret", "type": "main"}, {"platform": "tiktok", "handle": "teamsecret", "label": "Team Secret", "type": "main"}, {"platform": "facebook", "handle": "TeamSecret", "label": "Team Secret", "type": "main"}]}, {"id": "heroic", "name": "Heroic", "accounts": [{"platform": "twitter", "handle": "heroicgg", "label": "Heroic", "type": "main"}, {"platform": "instagram", "handle": "heroic_gg", "label": "Heroic", "type": "main"}, {"platform": "tiktok", "handle": "heroicgg", "label": "Heroic", "type": "main"}, {"platform": "facebook", "handle": "heroicgg", "label": "Heroic", "type": "main"}]}, {"id": "big", "name": "BIG", "accounts": [{"platform": "twitter", "handle": "BIGCLANgg", "label": "BIG", "type": "main"}, {"platform": "instagram", "handle": "bigclangg", "label": "BIG", "type": "main"}, {"platform": "tiktok", "handle": "bigclangg", "label": "BIG", "type": "main"}, {"platform": "facebook", "handle": "BigClangg", "label": "BIG", "type": "main"}]}, {"id": "complexity", "name": "Complexity Gaming", "accounts": [{"platform": "twitter", "handle": "Complexity", "label": "Complexity", "type": "main"}, {"platform": "instagram", "handle": "complexitygaming", "label": "Complexity", "type": "main"}, {"platform": "tiktok", "handle": "complexity", "label": "Complexity", "type": "main"}, {"platform": "facebook", "handle": "Complexity", "label": "Complexity", "type": "main"}]}, {"id": "pain-gaming", "name": "paiN Gaming", "accounts": [{"platform": "twitter", "handle": "paiNGamingBR", "label": "paiN Gaming", "type": "main"}, {"platform": "instagram", "handle": "paingamingbr", "label": "paiN Gaming", "type": "main"}, {"platform": "tiktok", "handle": "paingaming", "label": "paiN Gaming", "type": "main"}, {"platform": "facebook", "handle": "paiNGamingBR", "label": "paiN Gaming", "type": "main"}]}, {"id": "ence", "name": "ENCE", "accounts": [{"platform": "twitter", "handle": "ENCE", "label": "ENCE", "type": "main"}, {"platform": "instagram", "handle": "enceesports", "label": "ENCE", "type": "main"}, {"platform": "tiktok", "handle": "enceesports", "label": "ENCE", "type": "main"}, {"platform": "facebook", "handle": "enceesports", "label": "ENCE", "type": "main"}]}]};
+const HISTORY = {"snapshots": [{"date": "2026-03-05", "timestamp": "2026-03-05T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7217391, "faze-clan__twitter__FaZeEsports": 178814, "faze-clan__instagram__fazeclan": 6803084, "faze-clan__tiktok__fazeclan": 10450628, "faze-clan__facebook__FaZeClan": 3803876, "loud__twitter__LOUDgg": 3104646, "loud__instagram__loudgg": 8495682, "loud__tiktok__loudgg": 7164467, "loud__facebook__LOUDgg": 1199071, "100-thieves__twitter__100Thieves": 3415545, "100-thieves__instagram__100thieves": 5093876, "100-thieves__tiktok__100thieves": 4204356, "100-thieves__facebook__100Thieves": 899634, "g2-esports__twitter__G2esports": 2696720, "g2-esports__instagram__g2esports": 2803601, "g2-esports__tiktok__g2esports": 3106341, "g2-esports__facebook__G2esports": 1604369, "natus-vincere__twitter__natusvincere": 92169, "natus-vincere__instagram__natus_vincere_official": 249633, "natus-vincere__tiktok__navi_gg": 2795947, "natus-vincere__facebook__NatusVincere": 4117902, "fnatic__twitter__FNATIC": 3504724, "fnatic__instagram__fnatic": 2092931, "fnatic__tiktok__fnatic": 1807657, "fnatic__facebook__fnatic": 3205907, "t1__twitter__T1": 4181349, "t1__instagram__t1lol": 479973, "t1__tiktok__t1": 3614872, "t1__facebook__T1": 2395552, "team-liquid__twitter__TeamLiquid": 3111925, "team-liquid__instagram__teamliquid": 1795767, "team-liquid__tiktok__liquid": 179372, "team-liquid__facebook__TeamLiquid": 2811139, "cloud9__twitter__Cloud9": 2612930, "cloud9__instagram__cloud9gg": 122023, "cloud9__tiktok__cloud9": 74442, "cloud9__facebook__Cloud9": 2098365, "team-vitality__twitter__TeamVitality": 1201150, "team-vitality__instagram__teamvitality": 1406595, "team-vitality__tiktok__teamvitality": 796916, "team-vitality__facebook__TeamVitality": 1102954, "furia__twitter__FURIA": 2198564, "furia__instagram__furiagg": 4610216, "furia__tiktok__furiagg": 3800022, "furia__facebook__FURIAgg": 1294883, "nrg__twitter__NRGgg": 901250, "nrg__instagram__nrggram": 368809, "nrg__tiktok__nrg": 501393, "nrg__facebook__NRGwin": 328382, "astralis__twitter__Astralisgg": 1104720, "astralis__instagram__astralisgg": 518645, "astralis__tiktok__astralis": 177073, "astralis__facebook__Astralis": 782464, "team-spirit__twitter__Team__Spirit": 447094, "team-spirit__instagram__team__spirit": 396096, "team-spirit__tiktok__teamspirit": 189167, "team-spirit__facebook__TeamSpiritGG": 310791, "virtus-pro__twitter__virtuspro": 818456, "virtus-pro__instagram__virtuspro": 539665, "virtus-pro__tiktok__virtuspro": 309218, "virtus-pro__facebook__virtuspro": 680600, "mouz__twitter__mousesports": 577141, "mouz__instagram__mousesports": 309159, "mouz__tiktok__mousesports": 209098, "mouz__facebook__mousesports": 419938, "team-falcons__twitter__TeamFalconsGG": 334162, "team-falcons__instagram__teamfalconsgg": 348493, "team-falcons__tiktok__falcons.esports": 297051, "team-falcons__facebook__TeamFalconsGG": 100672, "og-esports__twitter__OGesports": 1002290, "og-esports__instagram__ogesports": 520760, "og-esports__tiktok__ogesportsofficial": 81646, "og-esports__facebook__OGesports": 598141, "team-secret__twitter__teamsecret": 1395568, "team-secret__instagram__teamsecret": 582454, "team-secret__tiktok__teamsecret": 321139, "team-secret__facebook__TeamSecret": 904493, "heroic__twitter__heroicgg": 219105, "heroic__instagram__heroicgg": 84716, "heroic__tiktok__heroicgg": 60218, "heroic__facebook__heroicgg": 94527, "big__twitter__BIGCLANgg": 255416, "big__instagram__bigclangg": 289122, "big__tiktok__bigclangg": 433236, "big__facebook__BIGclan": 159503, "complexity__twitter__Complexity": 520411, "complexity__instagram__complexitygaming": 209608, "complexity__tiktok__complexity": 76291, "complexity__facebook__Complexity": 378316, "pain-gaming__twitter__paiNGamingBR": 1196229, "pain-gaming__instagram__paingamingbr": 363278, "pain-gaming__tiktok__paingaming": 262715, "pain-gaming__facebook__paiNGamingBR": 597238, "ence__twitter__ENCE": 340284, "ence__instagram__enceesports": 109736, "ence__tiktok__enceesports": 74804, "ence__facebook__ENCE": 180261}}, {"date": "2026-03-06", "timestamp": "2026-03-06T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7219768, "faze-clan__twitter__FaZeEsports": 88148, "faze-clan__instagram__fazeclan": 6774356, "faze-clan__tiktok__fazeclan": 10464570, "faze-clan__facebook__FaZeClan": 3816137, "loud__twitter__LOUDgg": 3098746, "loud__instagram__loudgg": 8512738, "loud__tiktok__loudgg": 7167153, "loud__facebook__LOUDgg": 1205568, "100-thieves__twitter__100Thieves": 3389176, "100-thieves__instagram__100thieves": 5114693, "100-thieves__tiktok__100thieves": 4205281, "100-thieves__facebook__100Thieves": 901901, "g2-esports__twitter__G2esports": 2700245, "g2-esports__instagram__g2esports": 2804097, "g2-esports__tiktok__g2esports": 3085259, "g2-esports__facebook__G2esports": 1607921, "natus-vincere__twitter__natusvincere": 134838, "natus-vincere__instagram__natus_vincere_official": 273255, "natus-vincere__tiktok__navi_gg": 2802569, "natus-vincere__facebook__NatusVincere": 4103169, "fnatic__twitter__FNATIC": 3493816, "fnatic__instagram__fnatic": 2091359, "fnatic__tiktok__fnatic": 1795821, "fnatic__facebook__fnatic": 3202689, "t1__twitter__T1": 4212539, "t1__instagram__t1lol": 175025, "t1__tiktok__t1": 3597457, "t1__facebook__T1": 2396917, "team-liquid__twitter__TeamLiquid": 3112595, "team-liquid__instagram__teamliquid": 1794223, "team-liquid__tiktok__liquid": 419285, "team-liquid__facebook__TeamLiquid": 2809395, "cloud9__twitter__Cloud9": 2608959, "cloud9__instagram__cloud9gg": 169628, "cloud9__tiktok__cloud9": 259913, "cloud9__facebook__Cloud9": 2103416, "team-vitality__twitter__TeamVitality": 1204571, "team-vitality__instagram__teamvitality": 1395278, "team-vitality__tiktok__teamvitality": 803838, "team-vitality__facebook__TeamVitality": 1101189, "furia__twitter__FURIA": 2196760, "furia__instagram__furiagg": 4584581, "furia__tiktok__furiagg": 3783352, "furia__facebook__FURIAgg": 1305663, "nrg__twitter__NRGgg": 904301, "nrg__instagram__nrggram": 435987, "nrg__tiktok__nrg": 502344, "nrg__facebook__NRGwin": 378108, "astralis__twitter__Astralisgg": 1100584, "astralis__instagram__astralisgg": 519629, "astralis__tiktok__astralis": 204442, "astralis__facebook__Astralis": 781755, "team-spirit__twitter__Team__Spirit": 141007, "team-spirit__instagram__team__spirit": 336760, "team-spirit__tiktok__teamspirit": 160367, "team-spirit__facebook__TeamSpiritGG": 309890, "virtus-pro__twitter__virtuspro": 819932, "virtus-pro__instagram__virtuspro": 541071, "virtus-pro__tiktok__virtuspro": 310507, "virtus-pro__facebook__virtuspro": 683167, "mouz__twitter__mousesports": 578616, "mouz__instagram__mousesports": 308642, "mouz__tiktok__mousesports": 210636, "mouz__facebook__mousesports": 420656, "team-falcons__twitter__TeamFalconsGG": 151822, "team-falcons__instagram__teamfalconsgg": 259989, "team-falcons__tiktok__falcons.esports": 53121, "team-falcons__facebook__TeamFalconsGG": 105627, "og-esports__twitter__OGesports": 1000662, "og-esports__instagram__ogesports": 522339, "og-esports__tiktok__ogesportsofficial": 114000, "og-esports__facebook__OGesports": 600541, "team-secret__twitter__teamsecret": 1406154, "team-secret__instagram__teamsecret": 582521, "team-secret__tiktok__teamsecret": 320291, "team-secret__facebook__TeamSecret": 900129, "heroic__twitter__heroicgg": 220836, "heroic__instagram__heroicgg": 85052, "heroic__tiktok__heroicgg": 59975, "heroic__facebook__heroicgg": 94803, "big__twitter__BIGCLANgg": 216805, "big__instagram__bigclangg": 129353, "big__tiktok__bigclangg": 420087, "big__facebook__BIGclan": 159915, "complexity__twitter__Complexity": 519650, "complexity__instagram__complexitygaming": 210480, "complexity__tiktok__complexity": 499777, "complexity__facebook__Complexity": 379475, "pain-gaming__twitter__paiNGamingBR": 1205008, "pain-gaming__instagram__paingamingbr": 489501, "pain-gaming__tiktok__paingaming": 337809, "pain-gaming__facebook__paiNGamingBR": 599727, "ence__twitter__ENCE": 340661, "ence__instagram__enceesports": 109660, "ence__tiktok__enceesports": 75395, "ence__facebook__ENCE": 179829}}, {"date": "2026-03-07", "timestamp": "2026-03-07T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7175281, "faze-clan__twitter__FaZeEsports": 274695, "faze-clan__instagram__fazeclan": 6791030, "faze-clan__tiktok__fazeclan": 10532287, "faze-clan__facebook__FaZeClan": 3818758, "loud__twitter__LOUDgg": 3088279, "loud__instagram__loudgg": 8468690, "loud__tiktok__loudgg": 7171660, "loud__facebook__LOUDgg": 1194649, "100-thieves__twitter__100Thieves": 3384909, "100-thieves__instagram__100thieves": 5100644, "100-thieves__tiktok__100thieves": 4190881, "100-thieves__facebook__100Thieves": 899184, "g2-esports__twitter__G2esports": 2708550, "g2-esports__instagram__g2esports": 2792879, "g2-esports__tiktok__g2esports": 3086179, "g2-esports__facebook__G2esports": 1607589, "natus-vincere__twitter__natusvincere": 247426, "natus-vincere__instagram__natus_vincere_official": 90201, "natus-vincere__tiktok__navi_gg": 2808419, "natus-vincere__facebook__NatusVincere": 4115600, "fnatic__twitter__FNATIC": 3513356, "fnatic__instagram__fnatic": 2104709, "fnatic__tiktok__fnatic": 1798229, "fnatic__facebook__fnatic": 3201401, "t1__twitter__T1": 4209768, "t1__instagram__t1lol": 483073, "t1__tiktok__t1": 3619603, "t1__facebook__T1": 2411740, "team-liquid__twitter__TeamLiquid": 3099820, "team-liquid__instagram__teamliquid": 1798012, "team-liquid__tiktok__liquid": 178125, "team-liquid__facebook__TeamLiquid": 2800117, "cloud9__twitter__Cloud9": 2597653, "cloud9__instagram__cloud9gg": 308445, "cloud9__tiktok__cloud9": 160899, "cloud9__facebook__Cloud9": 2106127, "team-vitality__twitter__TeamVitality": 1200973, "team-vitality__instagram__teamvitality": 1403457, "team-vitality__tiktok__teamvitality": 798436, "team-vitality__facebook__TeamVitality": 1100687, "furia__twitter__FURIA": 2195942, "furia__instagram__furiagg": 4594544, "furia__tiktok__furiagg": 3803914, "furia__facebook__FURIAgg": 1303901, "nrg__twitter__NRGgg": 900016, "nrg__instagram__nrggram": 210042, "nrg__tiktok__nrg": 501441, "nrg__facebook__NRGwin": 448556, "astralis__twitter__Astralisgg": 1103117, "astralis__instagram__astralisgg": 519193, "astralis__tiktok__astralis": 102583, "astralis__facebook__Astralis": 776477, "team-spirit__twitter__Team__Spirit": 328638, "team-spirit__instagram__team__spirit": 78792, "team-spirit__tiktok__teamspirit": 116582, "team-spirit__facebook__TeamSpiritGG": 310508, "virtus-pro__twitter__virtuspro": 819171, "virtus-pro__instagram__virtuspro": 542171, "virtus-pro__tiktok__virtuspro": 309957, "virtus-pro__facebook__virtuspro": 681718, "mouz__twitter__mousesports": 580549, "mouz__instagram__mousesports": 309302, "mouz__tiktok__mousesports": 210393, "mouz__facebook__mousesports": 421450, "team-falcons__twitter__TeamFalconsGG": 249423, "team-falcons__instagram__teamfalconsgg": 358213, "team-falcons__tiktok__falcons.esports": 377418, "team-falcons__facebook__TeamFalconsGG": 101825, "og-esports__twitter__OGesports": 996221, "og-esports__instagram__ogesports": 517965, "og-esports__tiktok__ogesportsofficial": 51526, "og-esports__facebook__OGesports": 598647, "team-secret__twitter__teamsecret": 1405633, "team-secret__instagram__teamsecret": 582895, "team-secret__tiktok__teamsecret": 320554, "team-secret__facebook__TeamSecret": 900177, "heroic__twitter__heroicgg": 219311, "heroic__instagram__heroicgg": 84708, "heroic__tiktok__heroicgg": 60107, "heroic__facebook__heroicgg": 94861, "big__twitter__BIGCLANgg": 115037, "big__instagram__bigclangg": 261280, "big__tiktok__bigclangg": 309362, "big__facebook__BIGclan": 160292, "complexity__twitter__Complexity": 522544, "complexity__instagram__complexitygaming": 210369, "complexity__tiktok__complexity": 61041, "complexity__facebook__Complexity": 381251, "pain-gaming__twitter__paiNGamingBR": 1202510, "pain-gaming__instagram__paingamingbr": 196068, "pain-gaming__tiktok__paingaming": 384933, "pain-gaming__facebook__paiNGamingBR": 599286, "ence__twitter__ENCE": 338942, "ence__instagram__enceesports": 109849, "ence__tiktok__enceesports": 75101, "ence__facebook__ENCE": 179602}}, {"date": "2026-03-08", "timestamp": "2026-03-08T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7203632, "faze-clan__twitter__FaZeEsports": 318611, "faze-clan__instagram__fazeclan": 6775469, "faze-clan__tiktok__fazeclan": 10534654, "faze-clan__facebook__FaZeClan": 3786102, "loud__twitter__LOUDgg": 3116243, "loud__instagram__loudgg": 8510233, "loud__tiktok__loudgg": 7218418, "loud__facebook__LOUDgg": 1199108, "100-thieves__twitter__100Thieves": 3389428, "100-thieves__instagram__100thieves": 5105148, "100-thieves__tiktok__100thieves": 4189975, "100-thieves__facebook__100Thieves": 902435, "g2-esports__twitter__G2esports": 2716497, "g2-esports__instagram__g2esports": 2792416, "g2-esports__tiktok__g2esports": 3104615, "g2-esports__facebook__G2esports": 1598554, "natus-vincere__twitter__natusvincere": 464060, "natus-vincere__instagram__natus_vincere_official": 464896, "natus-vincere__tiktok__navi_gg": 2812739, "natus-vincere__facebook__NatusVincere": 4105719, "fnatic__twitter__FNATIC": 3502376, "fnatic__instagram__fnatic": 2102933, "fnatic__tiktok__fnatic": 1809217, "fnatic__facebook__fnatic": 3198129, "t1__twitter__T1": 4185978, "t1__instagram__t1lol": 442643, "t1__tiktok__t1": 3608645, "t1__facebook__T1": 2394239, "team-liquid__twitter__TeamLiquid": 3115832, "team-liquid__instagram__teamliquid": 1809163, "team-liquid__tiktok__liquid": 282118, "team-liquid__facebook__TeamLiquid": 2800743, "cloud9__twitter__Cloud9": 2592735, "cloud9__instagram__cloud9gg": 459673, "cloud9__tiktok__cloud9": 411761, "cloud9__facebook__Cloud9": 2110334, "team-vitality__twitter__TeamVitality": 1203257, "team-vitality__instagram__teamvitality": 1401814, "team-vitality__tiktok__teamvitality": 801355, "team-vitality__facebook__TeamVitality": 1104365, "furia__twitter__FURIA": 2208979, "furia__instagram__furiagg": 4603602, "furia__tiktok__furiagg": 3784593, "furia__facebook__FURIAgg": 1298942, "nrg__twitter__NRGgg": 898431, "nrg__instagram__nrggram": 267072, "nrg__tiktok__nrg": 500802, "nrg__facebook__NRGwin": 250174, "astralis__twitter__Astralisgg": 1100091, "astralis__instagram__astralisgg": 521311, "astralis__tiktok__astralis": 471261, "astralis__facebook__Astralis": 779927, "team-spirit__twitter__Team__Spirit": 231053, "team-spirit__instagram__team__spirit": 272649, "team-spirit__tiktok__teamspirit": 208269, "team-spirit__facebook__TeamSpiritGG": 309764, "virtus-pro__twitter__virtuspro": 824855, "virtus-pro__instagram__virtuspro": 541959, "virtus-pro__tiktok__virtuspro": 310399, "virtus-pro__facebook__virtuspro": 684063, "mouz__twitter__mousesports": 582625, "mouz__instagram__mousesports": 309543, "mouz__tiktok__mousesports": 210438, "mouz__facebook__mousesports": 421326, "team-falcons__twitter__TeamFalconsGG": 454400, "team-falcons__instagram__teamfalconsgg": 380023, "team-falcons__tiktok__falcons.esports": 70673, "team-falcons__facebook__TeamFalconsGG": 352818, "og-esports__twitter__OGesports": 999846, "og-esports__instagram__ogesports": 520443, "og-esports__tiktok__ogesportsofficial": 243041, "og-esports__facebook__OGesports": 602784, "team-secret__twitter__teamsecret": 1399172, "team-secret__instagram__teamsecret": 580549, "team-secret__tiktok__teamsecret": 321643, "team-secret__facebook__TeamSecret": 905376, "heroic__twitter__heroicgg": 219982, "heroic__instagram__heroicgg": 84865, "heroic__tiktok__heroicgg": 60154, "heroic__facebook__heroicgg": 94945, "big__twitter__BIGCLANgg": 383823, "big__instagram__bigclangg": 172945, "big__tiktok__bigclangg": 344957, "big__facebook__BIGclan": 160578, "complexity__twitter__Complexity": 519867, "complexity__instagram__complexitygaming": 209102, "complexity__tiktok__complexity": 307594, "complexity__facebook__Complexity": 379999, "pain-gaming__twitter__paiNGamingBR": 1204088, "pain-gaming__instagram__paingamingbr": 334291, "pain-gaming__tiktok__paingaming": 131395, "pain-gaming__facebook__paiNGamingBR": 599980, "ence__twitter__ENCE": 339675, "ence__instagram__enceesports": 109801, "ence__tiktok__enceesports": 75170, "ence__facebook__ENCE": 180509}}, {"date": "2026-03-09", "timestamp": "2026-03-09T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7185109, "faze-clan__twitter__FaZeEsports": 114635, "faze-clan__instagram__fazeclan": 6819580, "faze-clan__tiktok__fazeclan": 10473232, "faze-clan__facebook__FaZeClan": 3788774, "loud__twitter__LOUDgg": 3112489, "loud__instagram__loudgg": 8482055, "loud__tiktok__loudgg": 7181265, "loud__facebook__LOUDgg": 1204788, "100-thieves__twitter__100Thieves": 3408102, "100-thieves__instagram__100thieves": 5111683, "100-thieves__tiktok__100thieves": 4196608, "100-thieves__facebook__100Thieves": 899115, "g2-esports__twitter__G2esports": 2692140, "g2-esports__instagram__g2esports": 2810364, "g2-esports__tiktok__g2esports": 3099181, "g2-esports__facebook__G2esports": 1600980, "natus-vincere__twitter__natusvincere": 373723, "natus-vincere__instagram__natus_vincere_official": 395775, "natus-vincere__tiktok__navi_gg": 2800803, "natus-vincere__facebook__NatusVincere": 4088345, "fnatic__twitter__FNATIC": 3491538, "fnatic__instagram__fnatic": 2094530, "fnatic__tiktok__fnatic": 1803909, "fnatic__facebook__fnatic": 3201109, "t1__twitter__T1": 4203298, "t1__instagram__t1lol": 368895, "t1__tiktok__t1": 3611794, "t1__facebook__T1": 2411860, "team-liquid__twitter__TeamLiquid": 3095053, "team-liquid__instagram__teamliquid": 1801276, "team-liquid__tiktok__liquid": 432448, "team-liquid__facebook__TeamLiquid": 2814972, "cloud9__twitter__Cloud9": 2593603, "cloud9__instagram__cloud9gg": 486017, "cloud9__tiktok__cloud9": 442450, "cloud9__facebook__Cloud9": 2110635, "team-vitality__twitter__TeamVitality": 1196575, "team-vitality__instagram__teamvitality": 1408703, "team-vitality__tiktok__teamvitality": 803202, "team-vitality__facebook__TeamVitality": 1099862, "furia__twitter__FURIA": 2195060, "furia__instagram__furiagg": 4585454, "furia__tiktok__furiagg": 3790248, "furia__facebook__FURIAgg": 1305713, "nrg__twitter__NRGgg": 903577, "nrg__instagram__nrggram": 377018, "nrg__tiktok__nrg": 501477, "nrg__facebook__NRGwin": 412597, "astralis__twitter__Astralisgg": 1106426, "astralis__instagram__astralisgg": 522137, "astralis__tiktok__astralis": 345923, "astralis__facebook__Astralis": 777436, "team-spirit__twitter__Team__Spirit": 441181, "team-spirit__instagram__team__spirit": 287738, "team-spirit__tiktok__teamspirit": 430610, "team-spirit__facebook__TeamSpiritGG": 308778, "virtus-pro__twitter__virtuspro": 817619, "virtus-pro__instagram__virtuspro": 541326, "virtus-pro__tiktok__virtuspro": 310158, "virtus-pro__facebook__virtuspro": 678463, "mouz__twitter__mousesports": 581369, "mouz__instagram__mousesports": 310884, "mouz__tiktok__mousesports": 211176, "mouz__facebook__mousesports": 419338, "team-falcons__twitter__TeamFalconsGG": 161433, "team-falcons__instagram__teamfalconsgg": 200945, "team-falcons__tiktok__falcons.esports": 440491, "team-falcons__facebook__TeamFalconsGG": 329729, "og-esports__twitter__OGesports": 1000008, "og-esports__instagram__ogesports": 518540, "og-esports__tiktok__ogesportsofficial": 59640, "og-esports__facebook__OGesports": 601233, "team-secret__twitter__teamsecret": 1399042, "team-secret__instagram__teamsecret": 579234, "team-secret__tiktok__teamsecret": 320485, "team-secret__facebook__TeamSecret": 897970, "heroic__twitter__heroicgg": 219983, "heroic__instagram__heroicgg": 85016, "heroic__tiktok__heroicgg": 59928, "heroic__facebook__heroicgg": 95073, "big__twitter__BIGCLANgg": 109582, "big__instagram__bigclangg": 458445, "big__tiktok__bigclangg": 478359, "big__facebook__BIGclan": 159616, "complexity__twitter__Complexity": 521683, "complexity__instagram__complexitygaming": 210716, "complexity__tiktok__complexity": 309609, "complexity__facebook__Complexity": 382038, "pain-gaming__twitter__paiNGamingBR": 1207561, "pain-gaming__instagram__paingamingbr": 220124, "pain-gaming__tiktok__paingaming": 129247, "pain-gaming__facebook__paiNGamingBR": 599177, "ence__twitter__ENCE": 338878, "ence__instagram__enceesports": 109635, "ence__tiktok__enceesports": 75173, "ence__facebook__ENCE": 180267}}, {"date": "2026-03-10", "timestamp": "2026-03-10T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7214179, "faze-clan__twitter__FaZeEsports": 463920, "faze-clan__instagram__fazeclan": 6789939, "faze-clan__tiktok__fazeclan": 10478525, "faze-clan__facebook__FaZeClan": 3817157, "loud__twitter__LOUDgg": 3110330, "loud__instagram__loudgg": 8475991, "loud__tiktok__loudgg": 7205536, "loud__facebook__LOUDgg": 1200427, "100-thieves__twitter__100Thieves": 3413678, "100-thieves__instagram__100thieves": 5123424, "100-thieves__tiktok__100thieves": 4197749, "100-thieves__facebook__100Thieves": 899724, "g2-esports__twitter__G2esports": 2718515, "g2-esports__instagram__g2esports": 2801614, "g2-esports__tiktok__g2esports": 3118607, "g2-esports__facebook__G2esports": 1607080, "natus-vincere__twitter__natusvincere": 256225, "natus-vincere__instagram__natus_vincere_official": 94406, "natus-vincere__tiktok__navi_gg": 2792805, "natus-vincere__facebook__NatusVincere": 4118658, "fnatic__twitter__FNATIC": 3493874, "fnatic__instagram__fnatic": 2099922, "fnatic__tiktok__fnatic": 1810142, "fnatic__facebook__fnatic": 3207224, "t1__twitter__T1": 4195971, "t1__instagram__t1lol": 204709, "t1__tiktok__t1": 3614291, "t1__facebook__T1": 2397461, "team-liquid__twitter__TeamLiquid": 3108401, "team-liquid__instagram__teamliquid": 1807453, "team-liquid__tiktok__liquid": 456904, "team-liquid__facebook__TeamLiquid": 2801351, "cloud9__twitter__Cloud9": 2617274, "cloud9__instagram__cloud9gg": 371443, "cloud9__tiktok__cloud9": 284898, "cloud9__facebook__Cloud9": 2112845, "team-vitality__twitter__TeamVitality": 1206855, "team-vitality__instagram__teamvitality": 1398933, "team-vitality__tiktok__teamvitality": 800552, "team-vitality__facebook__TeamVitality": 1105668, "furia__twitter__FURIA": 2195067, "furia__instagram__furiagg": 4612856, "furia__tiktok__furiagg": 3807912, "furia__facebook__FURIAgg": 1304815, "nrg__twitter__NRGgg": 901379, "nrg__instagram__nrggram": 488546, "nrg__tiktok__nrg": 502993, "nrg__facebook__NRGwin": 64000, "astralis__twitter__Astralisgg": 1106513, "astralis__instagram__astralisgg": 519549, "astralis__tiktok__astralis": 102323, "astralis__facebook__Astralis": 777013, "team-spirit__twitter__Team__Spirit": 487343, "team-spirit__instagram__team__spirit": 448476, "team-spirit__tiktok__teamspirit": 52620, "team-spirit__facebook__TeamSpiritGG": 310824, "virtus-pro__twitter__virtuspro": 820778, "virtus-pro__instagram__virtuspro": 539506, "virtus-pro__tiktok__virtuspro": 310734, "virtus-pro__facebook__virtuspro": 678311, "mouz__twitter__mousesports": 578172, "mouz__instagram__mousesports": 311190, "mouz__tiktok__mousesports": 210526, "mouz__facebook__mousesports": 419373, "team-falcons__twitter__TeamFalconsGG": 402507, "team-falcons__instagram__teamfalconsgg": 85726, "team-falcons__tiktok__falcons.esports": 463701, "team-falcons__facebook__TeamFalconsGG": 254116, "og-esports__twitter__OGesports": 999992, "og-esports__instagram__ogesports": 518379, "og-esports__tiktok__ogesportsofficial": 176992, "og-esports__facebook__OGesports": 602540, "team-secret__twitter__teamsecret": 1401468, "team-secret__instagram__teamsecret": 582955, "team-secret__tiktok__teamsecret": 321083, "team-secret__facebook__TeamSecret": 897488, "heroic__twitter__heroicgg": 220358, "heroic__instagram__heroicgg": 85324, "heroic__tiktok__heroicgg": 59953, "heroic__facebook__heroicgg": 95276, "big__twitter__BIGCLANgg": 183182, "big__instagram__bigclangg": 200809, "big__tiktok__bigclangg": 392769, "big__facebook__BIGclan": 160059, "complexity__twitter__Complexity": 520599, "complexity__instagram__complexitygaming": 210308, "complexity__tiktok__complexity": 470141, "complexity__facebook__Complexity": 380248, "pain-gaming__twitter__paiNGamingBR": 1198556, "pain-gaming__instagram__paingamingbr": 104025, "pain-gaming__tiktok__paingaming": 211444, "pain-gaming__facebook__paiNGamingBR": 600235, "ence__twitter__ENCE": 342066, "ence__instagram__enceesports": 110025, "ence__tiktok__enceesports": 74860, "ence__facebook__ENCE": 180259}}, {"date": "2026-03-11", "timestamp": "2026-03-11T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7248733, "faze-clan__twitter__FaZeEsports": 125409, "faze-clan__instagram__fazeclan": 6775199, "faze-clan__tiktok__fazeclan": 10508052, "faze-clan__facebook__FaZeClan": 3789397, "loud__twitter__LOUDgg": 3104940, "loud__instagram__loudgg": 8475848, "loud__tiktok__loudgg": 7221983, "loud__facebook__LOUDgg": 1197780, "100-thieves__twitter__100Thieves": 3402262, "100-thieves__instagram__100thieves": 5118536, "100-thieves__tiktok__100thieves": 4227900, "100-thieves__facebook__100Thieves": 906536, "g2-esports__twitter__G2esports": 2711949, "g2-esports__instagram__g2esports": 2808820, "g2-esports__tiktok__g2esports": 3122421, "g2-esports__facebook__G2esports": 1606884, "natus-vincere__twitter__natusvincere": 340325, "natus-vincere__instagram__natus_vincere_official": 497884, "natus-vincere__tiktok__navi_gg": 2814206, "natus-vincere__facebook__NatusVincere": 4124579, "fnatic__twitter__FNATIC": 3513439, "fnatic__instagram__fnatic": 2104598, "fnatic__tiktok__fnatic": 1805483, "fnatic__facebook__fnatic": 3194777, "t1__twitter__T1": 4221816, "t1__instagram__t1lol": 325836, "t1__tiktok__t1": 3619816, "t1__facebook__T1": 2401046, "team-liquid__twitter__TeamLiquid": 3116156, "team-liquid__instagram__teamliquid": 1805044, "team-liquid__tiktok__liquid": 453553, "team-liquid__facebook__TeamLiquid": 2807775, "cloud9__twitter__Cloud9": 2597972, "cloud9__instagram__cloud9gg": 424265, "cloud9__tiktok__cloud9": 324053, "cloud9__facebook__Cloud9": 2111843, "team-vitality__twitter__TeamVitality": 1198712, "team-vitality__instagram__teamvitality": 1403129, "team-vitality__tiktok__teamvitality": 799513, "team-vitality__facebook__TeamVitality": 1106739, "furia__twitter__FURIA": 2207171, "furia__instagram__furiagg": 4592980, "furia__tiktok__furiagg": 3800346, "furia__facebook__FURIAgg": 1302085, "nrg__twitter__NRGgg": 904108, "nrg__instagram__nrggram": 338010, "nrg__tiktok__nrg": 502132, "nrg__facebook__NRGwin": 262130, "astralis__twitter__Astralisgg": 1100148, "astralis__instagram__astralisgg": 521121, "astralis__tiktok__astralis": 214066, "astralis__facebook__Astralis": 779405, "team-spirit__twitter__Team__Spirit": 243753, "team-spirit__instagram__team__spirit": 176632, "team-spirit__tiktok__teamspirit": 179339, "team-spirit__facebook__TeamSpiritGG": 310574, "virtus-pro__twitter__virtuspro": 825658, "virtus-pro__instagram__virtuspro": 542152, "virtus-pro__tiktok__virtuspro": 310823, "virtus-pro__facebook__virtuspro": 678427, "mouz__twitter__mousesports": 583763, "mouz__instagram__mousesports": 309218, "mouz__tiktok__mousesports": 211179, "mouz__facebook__mousesports": 420028, "team-falcons__twitter__TeamFalconsGG": 54392, "team-falcons__instagram__teamfalconsgg": 189600, "team-falcons__tiktok__falcons.esports": 240941, "team-falcons__facebook__TeamFalconsGG": 345104, "og-esports__twitter__OGesports": 1001030, "og-esports__instagram__ogesports": 523207, "og-esports__tiktok__ogesportsofficial": 406051, "og-esports__facebook__OGesports": 602699, "team-secret__twitter__teamsecret": 1400829, "team-secret__instagram__teamsecret": 580678, "team-secret__tiktok__teamsecret": 318746, "team-secret__facebook__TeamSecret": 901022, "heroic__twitter__heroicgg": 221076, "heroic__instagram__heroicgg": 85214, "heroic__tiktok__heroicgg": 60162, "heroic__facebook__heroicgg": 94969, "big__twitter__BIGCLANgg": 485095, "big__instagram__bigclangg": 346680, "big__tiktok__bigclangg": 242513, "big__facebook__BIGclan": 160795, "complexity__twitter__Complexity": 522074, "complexity__instagram__complexitygaming": 211347, "complexity__tiktok__complexity": 462179, "complexity__facebook__Complexity": 381204, "pain-gaming__twitter__paiNGamingBR": 1204888, "pain-gaming__instagram__paingamingbr": 455699, "pain-gaming__tiktok__paingaming": 407672, "pain-gaming__facebook__paiNGamingBR": 597629, "ence__twitter__ENCE": 340249, "ence__instagram__enceesports": 110477, "ence__tiktok__enceesports": 75379, "ence__facebook__ENCE": 180446}}, {"date": "2026-03-12", "timestamp": "2026-03-12T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7223292, "faze-clan__twitter__FaZeEsports": 327561, "faze-clan__instagram__fazeclan": 6811370, "faze-clan__tiktok__fazeclan": 10565924, "faze-clan__facebook__FaZeClan": 3816869, "loud__twitter__LOUDgg": 3120579, "loud__instagram__loudgg": 8495793, "loud__tiktok__loudgg": 7235381, "loud__facebook__LOUDgg": 1201007, "100-thieves__twitter__100Thieves": 3422521, "100-thieves__instagram__100thieves": 5088162, "100-thieves__tiktok__100thieves": 4225986, "100-thieves__facebook__100Thieves": 906796, "g2-esports__twitter__G2esports": 2690619, "g2-esports__instagram__g2esports": 2814462, "g2-esports__tiktok__g2esports": 3103746, "g2-esports__facebook__G2esports": 1601156, "natus-vincere__twitter__natusvincere": 344318, "natus-vincere__instagram__natus_vincere_official": 372851, "natus-vincere__tiktok__navi_gg": 2808082, "natus-vincere__facebook__NatusVincere": 4089128, "fnatic__twitter__FNATIC": 3495461, "fnatic__instagram__fnatic": 2112043, "fnatic__tiktok__fnatic": 1811155, "fnatic__facebook__fnatic": 3196880, "t1__twitter__T1": 4212854, "t1__instagram__t1lol": 453799, "t1__tiktok__t1": 3622612, "t1__facebook__T1": 2399993, "team-liquid__twitter__TeamLiquid": 3116720, "team-liquid__instagram__teamliquid": 1803177, "team-liquid__tiktok__liquid": 446087, "team-liquid__facebook__TeamLiquid": 2803936, "cloud9__twitter__Cloud9": 2604276, "cloud9__instagram__cloud9gg": 289334, "cloud9__tiktok__cloud9": 308803, "cloud9__facebook__Cloud9": 2097758, "team-vitality__twitter__TeamVitality": 1204729, "team-vitality__instagram__teamvitality": 1397589, "team-vitality__tiktok__teamvitality": 799672, "team-vitality__facebook__TeamVitality": 1099522, "furia__twitter__FURIA": 2203390, "furia__instagram__furiagg": 4590806, "furia__tiktok__furiagg": 3821996, "furia__facebook__FURIAgg": 1298807, "nrg__twitter__NRGgg": 901116, "nrg__instagram__nrggram": 190243, "nrg__tiktok__nrg": 499957, "nrg__facebook__NRGwin": 238090, "astralis__twitter__Astralisgg": 1098452, "astralis__instagram__astralisgg": 523154, "astralis__tiktok__astralis": 420861, "astralis__facebook__Astralis": 780942, "team-spirit__twitter__Team__Spirit": 374435, "team-spirit__instagram__team__spirit": 301790, "team-spirit__tiktok__teamspirit": 368966, "team-spirit__facebook__TeamSpiritGG": 311813, "virtus-pro__twitter__virtuspro": 819001, "virtus-pro__instagram__virtuspro": 542834, "virtus-pro__tiktok__virtuspro": 311237, "virtus-pro__facebook__virtuspro": 679576, "mouz__twitter__mousesports": 581327, "mouz__instagram__mousesports": 309640, "mouz__tiktok__mousesports": 209645, "mouz__facebook__mousesports": 421090, "team-falcons__twitter__TeamFalconsGG": 316787, "team-falcons__instagram__teamfalconsgg": 119379, "team-falcons__tiktok__falcons.esports": 80590, "team-falcons__facebook__TeamFalconsGG": 211924, "og-esports__twitter__OGesports": 997885, "og-esports__instagram__ogesports": 519620, "og-esports__tiktok__ogesportsofficial": 83245, "og-esports__facebook__OGesports": 601908, "team-secret__twitter__teamsecret": 1406355, "team-secret__instagram__teamsecret": 582781, "team-secret__tiktok__teamsecret": 321813, "team-secret__facebook__TeamSecret": 906493, "heroic__twitter__heroicgg": 221225, "heroic__instagram__heroicgg": 85397, "heroic__tiktok__heroicgg": 60094, "heroic__facebook__heroicgg": 95555, "big__twitter__BIGCLANgg": 485702, "big__instagram__bigclangg": 207293, "big__tiktok__bigclangg": 273843, "big__facebook__BIGclan": 159765, "complexity__twitter__Complexity": 522902, "complexity__instagram__complexitygaming": 210502, "complexity__tiktok__complexity": 374888, "complexity__facebook__Complexity": 378875, "pain-gaming__twitter__paiNGamingBR": 1202127, "pain-gaming__instagram__paingamingbr": 418967, "pain-gaming__tiktok__paingaming": 73130, "pain-gaming__facebook__paiNGamingBR": 603348, "ence__twitter__ENCE": 339999, "ence__instagram__enceesports": 110443, "ence__tiktok__enceesports": 75307, "ence__facebook__ENCE": 180923}}, {"date": "2026-03-13", "timestamp": "2026-03-13T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7211530, "faze-clan__twitter__FaZeEsports": 195324, "faze-clan__instagram__fazeclan": 6833875, "faze-clan__tiktok__fazeclan": 10479376, "faze-clan__facebook__FaZeClan": 3821025, "loud__twitter__LOUDgg": 3113783, "loud__instagram__loudgg": 8500344, "loud__tiktok__loudgg": 7199456, "loud__facebook__LOUDgg": 1204610, "100-thieves__twitter__100Thieves": 3392682, "100-thieves__instagram__100thieves": 5122807, "100-thieves__tiktok__100thieves": 4198269, "100-thieves__facebook__100Thieves": 906393, "g2-esports__twitter__G2esports": 2706330, "g2-esports__instagram__g2esports": 2797454, "g2-esports__tiktok__g2esports": 3094168, "g2-esports__facebook__G2esports": 1606436, "natus-vincere__twitter__natusvincere": 429791, "natus-vincere__instagram__natus_vincere_official": 159822, "natus-vincere__tiktok__navi_gg": 2795445, "natus-vincere__facebook__NatusVincere": 4125325, "fnatic__twitter__FNATIC": 3519914, "fnatic__instagram__fnatic": 2111784, "fnatic__tiktok__fnatic": 1799380, "fnatic__facebook__fnatic": 3203509, "t1__twitter__T1": 4224303, "t1__instagram__t1lol": 296066, "t1__tiktok__t1": 3605161, "t1__facebook__T1": 2402697, "team-liquid__twitter__TeamLiquid": 3118557, "team-liquid__instagram__teamliquid": 1810780, "team-liquid__tiktok__liquid": 354008, "team-liquid__facebook__TeamLiquid": 2801824, "cloud9__twitter__Cloud9": 2605443, "cloud9__instagram__cloud9gg": 410904, "cloud9__tiktok__cloud9": 307805, "cloud9__facebook__Cloud9": 2109676, "team-vitality__twitter__TeamVitality": 1204257, "team-vitality__instagram__teamvitality": 1407403, "team-vitality__tiktok__teamvitality": 803282, "team-vitality__facebook__TeamVitality": 1108774, "furia__twitter__FURIA": 2191231, "furia__instagram__furiagg": 4603685, "furia__tiktok__furiagg": 3794174, "furia__facebook__FURIAgg": 1304127, "nrg__twitter__NRGgg": 907138, "nrg__instagram__nrggram": 394631, "nrg__tiktok__nrg": 498636, "nrg__facebook__NRGwin": 431405, "astralis__twitter__Astralisgg": 1104829, "astralis__instagram__astralisgg": 523895, "astralis__tiktok__astralis": 106529, "astralis__facebook__Astralis": 781309, "team-spirit__twitter__Team__Spirit": 479741, "team-spirit__instagram__team__spirit": 91524, "team-spirit__tiktok__teamspirit": 347453, "team-spirit__facebook__TeamSpiritGG": 312008, "virtus-pro__twitter__virtuspro": 824492, "virtus-pro__instagram__virtuspro": 539940, "virtus-pro__tiktok__virtuspro": 311145, "virtus-pro__facebook__virtuspro": 680915, "mouz__twitter__mousesports": 580679, "mouz__instagram__mousesports": 312442, "mouz__tiktok__mousesports": 211166, "mouz__facebook__mousesports": 421425, "team-falcons__twitter__TeamFalconsGG": 74828, "team-falcons__instagram__teamfalconsgg": 197846, "team-falcons__tiktok__falcons.esports": 67578, "team-falcons__facebook__TeamFalconsGG": 58485, "og-esports__twitter__OGesports": 1006646, "og-esports__instagram__ogesports": 521247, "og-esports__tiktok__ogesportsofficial": 347929, "og-esports__facebook__OGesports": 602653, "team-secret__twitter__teamsecret": 1407320, "team-secret__instagram__teamsecret": 584151, "team-secret__tiktok__teamsecret": 319497, "team-secret__facebook__TeamSecret": 904126, "heroic__twitter__heroicgg": 221058, "heroic__instagram__heroicgg": 85482, "heroic__tiktok__heroicgg": 60055, "heroic__facebook__heroicgg": 95378, "big__twitter__BIGCLANgg": 398262, "big__instagram__bigclangg": 205988, "big__tiktok__bigclangg": 93053, "big__facebook__BIGclan": 160837, "complexity__twitter__Complexity": 518887, "complexity__instagram__complexitygaming": 211016, "complexity__tiktok__complexity": 103400, "complexity__facebook__Complexity": 381028, "pain-gaming__twitter__paiNGamingBR": 1199306, "pain-gaming__instagram__paingamingbr": 99341, "pain-gaming__tiktok__paingaming": 251969, "pain-gaming__facebook__paiNGamingBR": 603052, "ence__twitter__ENCE": 339767, "ence__instagram__enceesports": 109893, "ence__tiktok__enceesports": 74850, "ence__facebook__ENCE": 179941}}, {"date": "2026-03-14", "timestamp": "2026-03-14T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7190575, "faze-clan__twitter__FaZeEsports": 179903, "faze-clan__instagram__fazeclan": 6784138, "faze-clan__tiktok__fazeclan": 10498743, "faze-clan__facebook__FaZeClan": 3823495, "loud__twitter__LOUDgg": 3105546, "loud__instagram__loudgg": 8574421, "loud__tiktok__loudgg": 7221713, "loud__facebook__LOUDgg": 1199714, "100-thieves__twitter__100Thieves": 3407795, "100-thieves__instagram__100thieves": 5140141, "100-thieves__tiktok__100thieves": 4202230, "100-thieves__facebook__100Thieves": 902136, "g2-esports__twitter__G2esports": 2717819, "g2-esports__instagram__g2esports": 2810799, "g2-esports__tiktok__g2esports": 3114417, "g2-esports__facebook__G2esports": 1611355, "natus-vincere__twitter__natusvincere": 86846, "natus-vincere__instagram__natus_vincere_official": 264429, "natus-vincere__tiktok__navi_gg": 2809410, "natus-vincere__facebook__NatusVincere": 4104879, "fnatic__twitter__FNATIC": 3514902, "fnatic__instagram__fnatic": 2114848, "fnatic__tiktok__fnatic": 1795972, "fnatic__facebook__fnatic": 3220990, "t1__twitter__T1": 4195942, "t1__instagram__t1lol": 454713, "t1__tiktok__t1": 3595166, "t1__facebook__T1": 2405596, "team-liquid__twitter__TeamLiquid": 3115693, "team-liquid__instagram__teamliquid": 1797341, "team-liquid__tiktok__liquid": 319066, "team-liquid__facebook__TeamLiquid": 2806795, "cloud9__twitter__Cloud9": 2611354, "cloud9__instagram__cloud9gg": 412459, "cloud9__tiktok__cloud9": 62913, "cloud9__facebook__Cloud9": 2112033, "team-vitality__twitter__TeamVitality": 1200697, "team-vitality__instagram__teamvitality": 1402063, "team-vitality__tiktok__teamvitality": 802779, "team-vitality__facebook__TeamVitality": 1100051, "furia__twitter__FURIA": 2197069, "furia__instagram__furiagg": 4623045, "furia__tiktok__furiagg": 3825318, "furia__facebook__FURIAgg": 1297561, "nrg__twitter__NRGgg": 901849, "nrg__instagram__nrggram": 467876, "nrg__tiktok__nrg": 501109, "nrg__facebook__NRGwin": 436635, "astralis__twitter__Astralisgg": 1097226, "astralis__instagram__astralisgg": 522167, "astralis__tiktok__astralis": 476159, "astralis__facebook__Astralis": 780698, "team-spirit__twitter__Team__Spirit": 220410, "team-spirit__instagram__team__spirit": 403360, "team-spirit__tiktok__teamspirit": 385427, "team-spirit__facebook__TeamSpiritGG": 310461, "virtus-pro__twitter__virtuspro": 819397, "virtus-pro__instagram__virtuspro": 540760, "virtus-pro__tiktok__virtuspro": 311472, "virtus-pro__facebook__virtuspro": 679575, "mouz__twitter__mousesports": 579216, "mouz__instagram__mousesports": 309620, "mouz__tiktok__mousesports": 210480, "mouz__facebook__mousesports": 422038, "team-falcons__twitter__TeamFalconsGG": 141217, "team-falcons__instagram__teamfalconsgg": 124172, "team-falcons__tiktok__falcons.esports": 374629, "team-falcons__facebook__TeamFalconsGG": 55001, "og-esports__twitter__OGesports": 1004424, "og-esports__instagram__ogesports": 521190, "og-esports__tiktok__ogesportsofficial": 423928, "og-esports__facebook__OGesports": 603541, "team-secret__twitter__teamsecret": 1399573, "team-secret__instagram__teamsecret": 582756, "team-secret__tiktok__teamsecret": 321997, "team-secret__facebook__TeamSecret": 903121, "heroic__twitter__heroicgg": 221525, "heroic__instagram__heroicgg": 85461, "heroic__tiktok__heroicgg": 60237, "heroic__facebook__heroicgg": 95434, "big__twitter__BIGCLANgg": 446382, "big__instagram__bigclangg": 66964, "big__tiktok__bigclangg": 480529, "big__facebook__BIGclan": 160168, "complexity__twitter__Complexity": 522835, "complexity__instagram__complexitygaming": 210499, "complexity__tiktok__complexity": 372466, "complexity__facebook__Complexity": 381711, "pain-gaming__twitter__paiNGamingBR": 1202760, "pain-gaming__instagram__paingamingbr": 220201, "pain-gaming__tiktok__paingaming": 352186, "pain-gaming__facebook__paiNGamingBR": 600105, "ence__twitter__ENCE": 342696, "ence__instagram__enceesports": 110030, "ence__tiktok__enceesports": 75293, "ence__facebook__ENCE": 180941}}, {"date": "2026-03-15", "timestamp": "2026-03-15T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7226887, "faze-clan__twitter__FaZeEsports": 191316, "faze-clan__instagram__fazeclan": 6849974, "faze-clan__tiktok__fazeclan": 10553717, "faze-clan__facebook__FaZeClan": 3813033, "loud__twitter__LOUDgg": 3091699, "loud__instagram__loudgg": 8502568, "loud__tiktok__loudgg": 7239738, "loud__facebook__LOUDgg": 1201917, "100-thieves__twitter__100Thieves": 3427665, "100-thieves__instagram__100thieves": 5127358, "100-thieves__tiktok__100thieves": 4197830, "100-thieves__facebook__100Thieves": 901236, "g2-esports__twitter__G2esports": 2698623, "g2-esports__instagram__g2esports": 2810443, "g2-esports__tiktok__g2esports": 3103972, "g2-esports__facebook__G2esports": 1608940, "natus-vincere__twitter__natusvincere": 157492, "natus-vincere__instagram__natus_vincere_official": 393114, "natus-vincere__tiktok__navi_gg": 2799932, "natus-vincere__facebook__NatusVincere": 4126795, "fnatic__twitter__FNATIC": 3508626, "fnatic__instagram__fnatic": 2102371, "fnatic__tiktok__fnatic": 1795159, "fnatic__facebook__fnatic": 3197515, "t1__twitter__T1": 4210612, "t1__instagram__t1lol": 54604, "t1__tiktok__t1": 3612788, "t1__facebook__T1": 2411629, "team-liquid__twitter__TeamLiquid": 3100268, "team-liquid__instagram__teamliquid": 1807717, "team-liquid__tiktok__liquid": 447504, "team-liquid__facebook__TeamLiquid": 2805255, "cloud9__twitter__Cloud9": 2600184, "cloud9__instagram__cloud9gg": 235334, "cloud9__tiktok__cloud9": 130119, "cloud9__facebook__Cloud9": 2100605, "team-vitality__twitter__TeamVitality": 1197342, "team-vitality__instagram__teamvitality": 1410052, "team-vitality__tiktok__teamvitality": 801305, "team-vitality__facebook__TeamVitality": 1102058, "furia__twitter__FURIA": 2203796, "furia__instagram__furiagg": 4621076, "furia__tiktok__furiagg": 3810993, "furia__facebook__FURIAgg": 1302520, "nrg__twitter__NRGgg": 906376, "nrg__instagram__nrggram": 175324, "nrg__tiktok__nrg": 499623, "nrg__facebook__NRGwin": 56850, "astralis__twitter__Astralisgg": 1106540, "astralis__instagram__astralisgg": 522233, "astralis__tiktok__astralis": 453384, "astralis__facebook__Astralis": 777455, "team-spirit__twitter__Team__Spirit": 188602, "team-spirit__instagram__team__spirit": 464024, "team-spirit__tiktok__teamspirit": 424535, "team-spirit__facebook__TeamSpiritGG": 311245, "virtus-pro__twitter__virtuspro": 821009, "virtus-pro__instagram__virtuspro": 542986, "virtus-pro__tiktok__virtuspro": 309964, "virtus-pro__facebook__virtuspro": 684688, "mouz__twitter__mousesports": 580967, "mouz__instagram__mousesports": 312293, "mouz__tiktok__mousesports": 211308, "mouz__facebook__mousesports": 421640, "team-falcons__twitter__TeamFalconsGG": 213270, "team-falcons__instagram__teamfalconsgg": 142594, "team-falcons__tiktok__falcons.esports": 418208, "team-falcons__facebook__TeamFalconsGG": 233147, "og-esports__twitter__OGesports": 1000753, "og-esports__instagram__ogesports": 520937, "og-esports__tiktok__ogesportsofficial": 111823, "og-esports__facebook__OGesports": 601773, "team-secret__twitter__teamsecret": 1406466, "team-secret__instagram__teamsecret": 581793, "team-secret__tiktok__teamsecret": 321174, "team-secret__facebook__TeamSecret": 903930, "heroic__twitter__heroicgg": 219963, "heroic__instagram__heroicgg": 84869, "heroic__tiktok__heroicgg": 60101, "heroic__facebook__heroicgg": 95138, "big__twitter__BIGCLANgg": 501655, "big__instagram__bigclangg": 425690, "big__tiktok__bigclangg": 220063, "big__facebook__BIGclan": 159656, "complexity__twitter__Complexity": 521670, "complexity__instagram__complexitygaming": 211000, "complexity__tiktok__complexity": 74114, "complexity__facebook__Complexity": 382740, "pain-gaming__twitter__paiNGamingBR": 1203409, "pain-gaming__instagram__paingamingbr": 54198, "pain-gaming__tiktok__paingaming": 462896, "pain-gaming__facebook__paiNGamingBR": 604322, "ence__twitter__ENCE": 342188, "ence__instagram__enceesports": 110163, "ence__tiktok__enceesports": 74995, "ence__facebook__ENCE": 181042}}, {"date": "2026-03-16", "timestamp": "2026-03-16T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7201962, "faze-clan__twitter__FaZeEsports": 396645, "faze-clan__instagram__fazeclan": 6812620, "faze-clan__tiktok__fazeclan": 10579512, "faze-clan__facebook__FaZeClan": 3800548, "loud__twitter__LOUDgg": 3116264, "loud__instagram__loudgg": 8539295, "loud__tiktok__loudgg": 7181448, "loud__facebook__LOUDgg": 1203411, "100-thieves__twitter__100Thieves": 3410016, "100-thieves__instagram__100thieves": 5098707, "100-thieves__tiktok__100thieves": 4217214, "100-thieves__facebook__100Thieves": 902257, "g2-esports__twitter__G2esports": 2717746, "g2-esports__instagram__g2esports": 2815071, "g2-esports__tiktok__g2esports": 3103285, "g2-esports__facebook__G2esports": 1605198, "natus-vincere__twitter__natusvincere": 453920, "natus-vincere__instagram__natus_vincere_official": 189078, "natus-vincere__tiktok__navi_gg": 2820708, "natus-vincere__facebook__NatusVincere": 4103665, "fnatic__twitter__FNATIC": 3494554, "fnatic__instagram__fnatic": 2109067, "fnatic__tiktok__fnatic": 1803008, "fnatic__facebook__fnatic": 3200894, "t1__twitter__T1": 4217006, "t1__instagram__t1lol": 100279, "t1__tiktok__t1": 3590078, "t1__facebook__T1": 2404105, "team-liquid__twitter__TeamLiquid": 3114665, "team-liquid__instagram__teamliquid": 1804198, "team-liquid__tiktok__liquid": 479164, "team-liquid__facebook__TeamLiquid": 2812606, "cloud9__twitter__Cloud9": 2612954, "cloud9__instagram__cloud9gg": 473128, "cloud9__tiktok__cloud9": 293318, "cloud9__facebook__Cloud9": 2107686, "team-vitality__twitter__TeamVitality": 1202458, "team-vitality__instagram__teamvitality": 1398473, "team-vitality__tiktok__teamvitality": 799630, "team-vitality__facebook__TeamVitality": 1101399, "furia__twitter__FURIA": 2215698, "furia__instagram__furiagg": 4596150, "furia__tiktok__furiagg": 3816626, "furia__facebook__FURIAgg": 1306143, "nrg__twitter__NRGgg": 898803, "nrg__instagram__nrggram": 251321, "nrg__tiktok__nrg": 501485, "nrg__facebook__NRGwin": 347323, "astralis__twitter__Astralisgg": 1102405, "astralis__instagram__astralisgg": 524077, "astralis__tiktok__astralis": 81071, "astralis__facebook__Astralis": 787404, "team-spirit__twitter__Team__Spirit": 134104, "team-spirit__instagram__team__spirit": 190944, "team-spirit__tiktok__teamspirit": 439187, "team-spirit__facebook__TeamSpiritGG": 312627, "virtus-pro__twitter__virtuspro": 824971, "virtus-pro__instagram__virtuspro": 539581, "virtus-pro__tiktok__virtuspro": 312056, "virtus-pro__facebook__virtuspro": 682197, "mouz__twitter__mousesports": 582443, "mouz__instagram__mousesports": 312449, "mouz__tiktok__mousesports": 210048, "mouz__facebook__mousesports": 419504, "team-falcons__twitter__TeamFalconsGG": 164877, "team-falcons__instagram__teamfalconsgg": 224402, "team-falcons__tiktok__falcons.esports": 118338, "team-falcons__facebook__TeamFalconsGG": 472132, "og-esports__twitter__OGesports": 1003800, "og-esports__instagram__ogesports": 524153, "og-esports__tiktok__ogesportsofficial": 242285, "og-esports__facebook__OGesports": 599303, "team-secret__twitter__teamsecret": 1410206, "team-secret__instagram__teamsecret": 584760, "team-secret__tiktok__teamsecret": 320219, "team-secret__facebook__TeamSecret": 907612, "heroic__twitter__heroicgg": 220952, "heroic__instagram__heroicgg": 84994, "heroic__tiktok__heroicgg": 59949, "heroic__facebook__heroicgg": 95929, "big__twitter__BIGCLANgg": 257242, "big__instagram__bigclangg": 348312, "big__tiktok__bigclangg": 475256, "big__facebook__BIGclan": 160243, "complexity__twitter__Complexity": 520908, "complexity__instagram__complexitygaming": 211196, "complexity__tiktok__complexity": 97136, "complexity__facebook__Complexity": 381696, "pain-gaming__twitter__paiNGamingBR": 1204749, "pain-gaming__instagram__paingamingbr": 233355, "pain-gaming__tiktok__paingaming": 50706, "pain-gaming__facebook__paiNGamingBR": 605538, "ence__twitter__ENCE": 341184, "ence__instagram__enceesports": 110147, "ence__tiktok__enceesports": 75438, "ence__facebook__ENCE": 181095}}, {"date": "2026-03-17", "timestamp": "2026-03-17T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7205745, "faze-clan__twitter__FaZeEsports": 104722, "faze-clan__instagram__fazeclan": 6784455, "faze-clan__tiktok__fazeclan": 10580730, "faze-clan__facebook__FaZeClan": 3814788, "loud__twitter__LOUDgg": 3118281, "loud__instagram__loudgg": 8498007, "loud__tiktok__loudgg": 7226693, "loud__facebook__LOUDgg": 1206485, "100-thieves__twitter__100Thieves": 3392608, "100-thieves__instagram__100thieves": 5119112, "100-thieves__tiktok__100thieves": 4209264, "100-thieves__facebook__100Thieves": 905770, "g2-esports__twitter__G2esports": 2692995, "g2-esports__instagram__g2esports": 2825351, "g2-esports__tiktok__g2esports": 3110303, "g2-esports__facebook__G2esports": 1611876, "natus-vincere__twitter__natusvincere": 189330, "natus-vincere__instagram__natus_vincere_official": 147194, "natus-vincere__tiktok__navi_gg": 2802701, "natus-vincere__facebook__NatusVincere": 4123958, "fnatic__twitter__FNATIC": 3514076, "fnatic__instagram__fnatic": 2107031, "fnatic__tiktok__fnatic": 1815343, "fnatic__facebook__fnatic": 3193253, "t1__twitter__T1": 4218104, "t1__instagram__t1lol": 333700, "t1__tiktok__t1": 3618695, "t1__facebook__T1": 2415948, "team-liquid__twitter__TeamLiquid": 3123650, "team-liquid__instagram__teamliquid": 1815821, "team-liquid__tiktok__liquid": 127859, "team-liquid__facebook__TeamLiquid": 2806742, "cloud9__twitter__Cloud9": 2603441, "cloud9__instagram__cloud9gg": 272897, "cloud9__tiktok__cloud9": 156995, "cloud9__facebook__Cloud9": 2104717, "team-vitality__twitter__TeamVitality": 1201480, "team-vitality__instagram__teamvitality": 1406150, "team-vitality__tiktok__teamvitality": 801685, "team-vitality__facebook__TeamVitality": 1106833, "furia__twitter__FURIA": 2202327, "furia__instagram__furiagg": 4612844, "furia__tiktok__furiagg": 3806877, "furia__facebook__FURIAgg": 1299863, "nrg__twitter__NRGgg": 908267, "nrg__instagram__nrggram": 266490, "nrg__tiktok__nrg": 499739, "nrg__facebook__NRGwin": 195235, "astralis__twitter__Astralisgg": 1099886, "astralis__instagram__astralisgg": 519993, "astralis__tiktok__astralis": 302026, "astralis__facebook__Astralis": 784497, "team-spirit__twitter__Team__Spirit": 213550, "team-spirit__instagram__team__spirit": 418831, "team-spirit__tiktok__teamspirit": 170633, "team-spirit__facebook__TeamSpiritGG": 310965, "virtus-pro__twitter__virtuspro": 823821, "virtus-pro__instagram__virtuspro": 544032, "virtus-pro__tiktok__virtuspro": 312282, "virtus-pro__facebook__virtuspro": 683600, "mouz__twitter__mousesports": 582096, "mouz__instagram__mousesports": 311664, "mouz__tiktok__mousesports": 209635, "mouz__facebook__mousesports": 419046, "team-falcons__twitter__TeamFalconsGG": 67848, "team-falcons__instagram__teamfalconsgg": 419781, "team-falcons__tiktok__falcons.esports": 294846, "team-falcons__facebook__TeamFalconsGG": 115160, "og-esports__twitter__OGesports": 1000814, "og-esports__instagram__ogesports": 521304, "og-esports__tiktok__ogesportsofficial": 136107, "og-esports__facebook__OGesports": 601408, "team-secret__twitter__teamsecret": 1406974, "team-secret__instagram__teamsecret": 585465, "team-secret__tiktok__teamsecret": 319789, "team-secret__facebook__TeamSecret": 898515, "heroic__twitter__heroicgg": 221688, "heroic__instagram__heroicgg": 85599, "heroic__tiktok__heroicgg": 60136, "heroic__facebook__heroicgg": 95295, "big__twitter__BIGCLANgg": 423398, "big__instagram__bigclangg": 248587, "big__tiktok__bigclangg": 165261, "big__facebook__BIGclan": 160806, "complexity__twitter__Complexity": 522748, "complexity__instagram__complexitygaming": 211227, "complexity__tiktok__complexity": 362065, "complexity__facebook__Complexity": 380710, "pain-gaming__twitter__paiNGamingBR": 1209486, "pain-gaming__instagram__paingamingbr": 188577, "pain-gaming__tiktok__paingaming": 391213, "pain-gaming__facebook__paiNGamingBR": 598746, "ence__twitter__ENCE": 342059, "ence__instagram__enceesports": 109903, "ence__tiktok__enceesports": 75700, "ence__facebook__ENCE": 180826}}, {"date": "2026-03-18", "timestamp": "2026-03-18T09:00:00", "accounts": {"faze-clan__twitter__FaZeClan": 7225685, "faze-clan__twitter__FaZeEsports": 351301, "faze-clan__instagram__fazeclan": 6819063, "faze-clan__tiktok__fazeclan": 10586069, "faze-clan__facebook__FaZeClan": 3828142, "loud__twitter__LOUDgg": 3116444, "loud__instagram__loudgg": 8483682, "loud__tiktok__loudgg": 7240782, "loud__facebook__LOUDgg": 1212293, "100-thieves__twitter__100Thieves": 3401069, "100-thieves__instagram__100thieves": 5125660, "100-thieves__tiktok__100thieves": 4217183, "100-thieves__facebook__100Thieves": 904886, "g2-esports__twitter__G2esports": 2723751, "g2-esports__instagram__g2esports": 2801930, "g2-esports__tiktok__g2esports": 3114324, "g2-esports__facebook__G2esports": 1611471, "natus-vincere__twitter__natusvincere": 128923, "natus-vincere__instagram__natus_vincere_official": 267281, "natus-vincere__tiktok__navi_gg": 2815893, "natus-vincere__facebook__NatusVincere": 4121425, "fnatic__twitter__FNATIC": 3515934, "fnatic__instagram__fnatic": 2098019, "fnatic__tiktok__fnatic": 1810960, "fnatic__facebook__fnatic": 3220773, "t1__twitter__T1": 4205496, "t1__instagram__t1lol": 277353, "t1__tiktok__t1": 3605985, "t1__facebook__T1": 2396076, "team-liquid__twitter__TeamLiquid": 3117197, "team-liquid__instagram__teamliquid": 1810965, "team-liquid__tiktok__liquid": 181582, "team-liquid__facebook__TeamLiquid": 2802250, "cloud9__twitter__Cloud9": 2596183, "cloud9__instagram__cloud9gg": 74024, "cloud9__tiktok__cloud9": 433426, "cloud9__facebook__Cloud9": 2122893, "team-vitality__twitter__TeamVitality": 1207657, "team-vitality__instagram__teamvitality": 1409479, "team-vitality__tiktok__teamvitality": 800538, "team-vitality__facebook__TeamVitality": 1103866, "furia__twitter__FURIA": 2202291, "furia__instagram__furiagg": 4636494, "furia__tiktok__furiagg": 3812926, "furia__facebook__FURIAgg": 1307128, "nrg__twitter__NRGgg": 905656, "nrg__instagram__nrggram": 60211, "nrg__tiktok__nrg": 501875, "nrg__facebook__NRGwin": 299314, "astralis__twitter__Astralisgg": 1102837, "astralis__instagram__astralisgg": 521054, "astralis__tiktok__astralis": 376828, "astralis__facebook__Astralis": 784749, "team-spirit__twitter__Team__Spirit": 373120, "team-spirit__instagram__team__spirit": 106238, "team-spirit__tiktok__teamspirit": 459201, "team-spirit__facebook__TeamSpiritGG": 310699, "virtus-pro__twitter__virtuspro": 821204, "virtus-pro__instagram__virtuspro": 542529, "virtus-pro__tiktok__virtuspro": 310940, "virtus-pro__facebook__virtuspro": 684993, "mouz__twitter__mousesports": 585248, "mouz__instagram__mousesports": 310327, "mouz__tiktok__mousesports": 210885, "mouz__facebook__mousesports": 419228, "team-falcons__twitter__TeamFalconsGG": 475192, "team-falcons__instagram__teamfalconsgg": 203340, "team-falcons__tiktok__falcons.esports": 273636, "team-falcons__facebook__TeamFalconsGG": 447963, "og-esports__twitter__OGesports": 1001438, "og-esports__instagram__ogesports": 525475, "og-esports__tiktok__ogesportsofficial": 191009, "og-esports__facebook__OGesports": 599525, "team-secret__twitter__teamsecret": 1405611, "team-secret__instagram__teamsecret": 582707, "team-secret__tiktok__teamsecret": 322450, "team-secret__facebook__TeamSecret": 903831, "heroic__twitter__heroicgg": 220283, "heroic__instagram__heroicgg": 85382, "heroic__tiktok__heroicgg": 60062, "heroic__facebook__heroicgg": 95771, "big__twitter__BIGCLANgg": 494050, "big__instagram__bigclangg": 303936, "big__tiktok__bigclangg": 265420, "big__facebook__BIGclan": 160797, "complexity__twitter__Complexity": 523367, "complexity__instagram__complexitygaming": 211897, "complexity__tiktok__complexity": 403611, "complexity__facebook__Complexity": 380332, "pain-gaming__twitter__paiNGamingBR": 1205876, "pain-gaming__instagram__paingamingbr": 399431, "pain-gaming__tiktok__paingaming": 494567, "pain-gaming__facebook__paiNGamingBR": 601812, "ence__twitter__ENCE": 341231, "ence__instagram__enceesports": 110169, "ence__tiktok__enceesports": 75095, "ence__facebook__ENCE": 179781}}, {"date": "2026-03-19", "timestamp": "2026-03-19T10:32:38", "accounts": {"faze-clan__tiktok__fazeclan": 6500000, "loud__tiktok__loudgg": 10500000, "100-thieves__tiktok__100thieves": 1800000, "g2-esports__tiktok__g2esports": 1500000, "natus-vincere__tiktok__navi_gg": 1600000, "fnatic__tiktok__fnatic": 694100, "t1__tiktok__t1": 1300000, "team-liquid__tiktok__liquid": 27100, "cloud9__tiktok__cloud9": 341000, "team-vitality__tiktok__teamvitality": 1300000, "furia__tiktok__furiagg": 151500, "nrg__tiktok__nrg": 3300000, "astralis__tiktok__astralis": 180600, "team-spirit__tiktok__teamspirit": 884500, "virtus-pro__tiktok__virtuspro": 374000, "mouz__tiktok__mousesports": 77300, "team-falcons__tiktok__falcons.esports": 1300000, "og-esports__tiktok__ogesportsofficial": 141500, "team-secret__tiktok__teamsecret": 298400, "heroic__tiktok__heroicgg": 378800, "big__tiktok__bigclangg": 191600, "complexity__tiktok__complexity": 267600, "pain-gaming__tiktok__paingaming": 234400, "ence__tiktok__enceesports": 215100, "faze-clan__instagram__fazeclan": 10796557, "loud__instagram__loudgg": 11412920, "100-thieves__instagram__100thieves": 1113383, "g2-esports__instagram__g2esports": 1381406, "natus-vincere__instagram__natus_vincere_official": 1193237, "fnatic__instagram__fnatic": 1092113, "t1__instagram__t1lol": 1818097, "team-liquid__instagram__teamliquid": 943705, "cloud9__instagram__cloud9gg": 613054, "team-vitality__instagram__teamvitality": 1110217, "furia__instagram__furiagg": 1079841, "nrg__instagram__nrggram": 1597829, "astralis__instagram__astralis": 387380, "team-spirit__instagram__team__spirit": 295144, "virtus-pro__instagram__virtuspro": 278960, "mouz__instagram__mousesports": 188677, "team-falcons__instagram__teamfalconsgg": 679901, "og-esports__instagram__ogesports": 345096, "team-secret__instagram__teamsecret": 660565, "heroic__instagram__heroic_gg": 117369, "big__instagram__bigclangg": 101641, "complexity__instagram__complexitygaming": 89433, "pain-gaming__instagram__paingamingbr": 1792665, "ence__instagram__enceesports": 129409, "faze-clan__facebook__TheFaZeClan": 819000, "loud__facebook__LOUDgg": 7200, "100-thieves__facebook__100Thieves": 46000, "g2-esports__facebook__G2esports": 454000, "natus-vincere__facebook__NatusVincere": 1700000, "fnatic__facebook__fnatic": 2300000, "t1__facebook__T1LoL": 1000000, "team-liquid__facebook__TeamLiquid": 858000, "cloud9__facebook__Cloud9": 625000, "team-vitality__facebook__TeamVitality": 481000, "furia__facebook__FURIAgg": 52000, "nrg__facebook__NRGwin": 58000, "astralis__facebook__Astralisgg": 206000, "team-spirit__facebook__teamspiritpage": 173000, "virtus-pro__facebook__www.virtus.pro": 427000, "mouz__facebook__mousesports": 268000, "team-falcons__facebook__teamfalcongg": 25000, "og-esports__facebook__OGDota2": 1300000, "og-esports__facebook__OGcounterstrike": 301000, "team-secret__facebook__TeamSecret": 1100000, "heroic__facebook__heroicgg": 50000, "big__facebook__BigClangg": 17000, "complexity__facebook__Complexity": 166000, "pain-gaming__facebook__paiNGamingBR": 780000, "ence__facebook__enceesports": 28000, "faze-clan__twitter__FaZeClan": 5400000, "faze-clan__twitter__FaZeEsports": 286300, "loud__twitter__LOUDgg": 1800000, "100-thieves__twitter__100Thieves": 1200000, "g2-esports__twitter__G2esports": 1500000, "natus-vincere__twitter__natusvincere": 784200, "fnatic__twitter__FNATIC": 1600000, "t1__twitter__T1": 364700, "team-liquid__twitter__TeamLiquid": 745600, "cloud9__twitter__Cloud9": 1100000, "team-vitality__twitter__TeamVitality": 752600, "furia__twitter__FURIA": 621500, "nrg__twitter__NRGgg": 989900, "astralis__twitter__Astralisgg": 613100, "team-spirit__twitter__Team__Spirit": 191400, "virtus-pro__twitter__virtuspro": 250900, "mouz__twitter__mousesports": 172400, "team-falcons__twitter__TeamFalconsGG": 691000, "og-esports__twitter__OGesports": 939100, "team-secret__twitter__teamsecret": 577800, "heroic__twitter__heroicgg": 189700, "big__twitter__BIGCLANgg": 154300, "complexity__twitter__Complexity": 273800, "pain-gaming__twitter__paiNGamingBR": 657200, "ence__twitter__ENCE": 128699}}]};
+
+const PLATFORM_COLORS = {
+  twitter: "#1DA1F2", instagram: "#E1306C", tiktok: "#69C9D0", facebook: "#1877F2",
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+const state = {
+  platforms:        { twitter: true, instagram: true, tiktok: true, facebook: true },
+  types:            { main: true, cs: true },
+  disabledAccounts: new Set(),
+  sortCol:          "total",
+  sortAsc:          false,
+  expandedOrgs:     new Set(),
+  snapshotIndex:    Math.max(0, HISTORY.snapshots.length - 1),
+  playing:          false,
+  playInterval:     null,
+  playSpeed:        1000,
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function accountKey(orgId, platform, handle) {
+  return `${orgId}__${platform}__${handle}`;
+}
+
+function getSnapshot(idx) {
+  return HISTORY.snapshots[idx] || null;
+}
+
+function selectedSnapshot() {
+  return getSnapshot(state.snapshotIndex);
+}
+
+function computeOrgTotals(snapshot) {
+  if (!snapshot) return {};
+  const totals = {};
+  for (const org of CONFIG.organizations) {
+    let total = 0;
+    const breakdown = { twitter: 0, instagram: 0, tiktok: 0, facebook: 0 };
+    for (const acc of org.accounts) {
+      if (!state.platforms[acc.platform]) continue;
+      if (!state.types[acc.type]) continue;
+      const key = accountKey(org.id, acc.platform, acc.handle);
+      if (state.disabledAccounts.has(key)) continue;
+      const count = snapshot.accounts[key] ?? null;
+      if (count !== null) { total += count; breakdown[acc.platform] += count; }
+    }
+    totals[org.id] = { total, breakdown };
+  }
+  return totals;
+}
+
+function sortedOrgs(totals) {
+  const orgs = [...CONFIG.organizations];
+  orgs.sort((a, b) => {
+    if (state.sortCol === "name") {
+      return state.sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+    }
+    const col = state.sortCol;
+    const aVal = col === "total" ? (totals[a.id]?.total || 0) : (totals[a.id]?.breakdown?.[col] || 0);
+    const bVal = col === "total" ? (totals[b.id]?.total || 0) : (totals[b.id]?.breakdown?.[col] || 0);
+    return state.sortAsc ? aVal - bVal : bVal - aVal;
+  });
+  return orgs;
+}
+
+function fmt(n) {
+  if (n == null) return null;
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return n.toLocaleString();
+}
+function fmtFull(n) { return n == null ? "—" : n.toLocaleString(); }
+
+function profileUrl(platform, handle) {
+  const m = { twitter: `https://x.com/${handle}`, instagram: `https://www.instagram.com/${handle}/`,
+    tiktok: `https://www.tiktok.com/@${handle}`, facebook: `https://www.facebook.com/${handle}` };
+  return m[platform] || "#";
+}
+
+// ── Timeline controls ────────────────────────────────────────────────────────
+function initTimeline() {
+  const slider = document.getElementById("timeline-slider");
+  const max = Math.max(0, HISTORY.snapshots.length - 1);
+  slider.max = max;
+  slider.value = max;
+  state.snapshotIndex = max;
+  updateTimelineDisplay();
+  // Hide timeline if only 1 snapshot
+  if (HISTORY.snapshots.length <= 1) {
+    document.getElementById("timeline-card").style.display = "none";
+  }
+}
+
+function updateTimelineDisplay() {
+  const snap = selectedSnapshot();
+  const dateEl = document.getElementById("timeline-date");
+  const latestBtn = document.getElementById("latest-btn");
+  if (snap) {
+    const d = new Date(snap.date + "T00:00:00");
+    dateEl.textContent = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  } else {
+    dateEl.textContent = "—";
+  }
+  const isLatest = state.snapshotIndex === HISTORY.snapshots.length - 1;
+  latestBtn.classList.toggle("at-latest", isLatest);
+  latestBtn.textContent = isLatest ? "Latest ✓" : "Latest →";
+}
+
+function onSliderInput(val) {
+  state.snapshotIndex = parseInt(val);
+  updateTimelineDisplay();
+  render();
+}
+
+function jumpToLatest() {
+  state.snapshotIndex = Math.max(0, HISTORY.snapshots.length - 1);
+  document.getElementById("timeline-slider").value = state.snapshotIndex;
+  updateTimelineDisplay();
+  if (state.playing) togglePlay();
+  render();
+}
+
+function togglePlay() {
+  if (state.playing) {
+    clearInterval(state.playInterval);
+    state.playing = false;
+    document.getElementById("play-btn").innerHTML = "&#9654;";
+    document.getElementById("play-btn").classList.remove("playing");
+  } else {
+    // If at the end, restart from beginning
+    if (state.snapshotIndex >= HISTORY.snapshots.length - 1) {
+      state.snapshotIndex = 0;
+      document.getElementById("timeline-slider").value = 0;
+    }
+    state.playing = true;
+    document.getElementById("play-btn").innerHTML = "&#9646;&#9646;";
+    document.getElementById("play-btn").classList.add("playing");
+    state.playInterval = setInterval(() => {
+      if (state.snapshotIndex >= HISTORY.snapshots.length - 1) {
+        togglePlay(); // Stop at end
+        return;
+      }
+      state.snapshotIndex++;
+      document.getElementById("timeline-slider").value = state.snapshotIndex;
+      updateTimelineDisplay();
+      render();
+    }, state.playSpeed);
+  }
+}
+
+function setSpeed(ms) {
+  state.playSpeed = parseInt(ms);
+  if (state.playing) {
+    clearInterval(state.playInterval);
+    state.playInterval = setInterval(() => {
+      if (state.snapshotIndex >= HISTORY.snapshots.length - 1) { togglePlay(); return; }
+      state.snapshotIndex++;
+      document.getElementById("timeline-slider").value = state.snapshotIndex;
+      updateTimelineDisplay();
+      render();
+    }, state.playSpeed);
+  }
+}
+
+// ── Charts ───────────────────────────────────────────────────────────────────
+let breakdownChart = null;
+let breakdownSignature = "";  // tracks dataset structure to know when to rebuild
+let trendChart = null;
+
+const CHART_ANIM = {
+  duration: 600,
+  easing: "easeInOutQuart",
+};
+
+// Lighten a hex color towards white by a given amount (0-1)
+function lightenColor(hex, amount) {
+  let r = parseInt(hex.slice(1,3), 16);
+  let g = parseInt(hex.slice(3,5), 16);
+  let b = parseInt(hex.slice(5,7), 16);
+  r = Math.round(r + (255 - r) * amount);
+  g = Math.round(g + (255 - g) * amount);
+  b = Math.round(b + (255 - b) * amount);
+  return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`;
+}
+
+// Shade levels for account types within a platform:
+// "main" gets the full color, subsequent types get progressively lighter
+const TYPE_SHADES = { main: 0, cs: 0.35 };
+function colorForAccount(platform, type) {
+  const base = PLATFORM_COLORS[platform] || "#888";
+  const shade = TYPE_SHADES[type] ?? 0.25;
+  return shade === 0 ? base : lightenColor(base, shade);
+}
+
+// Build the per-account dataset structure.
+// Each dataset represents one (platform, type) combo that exists in the config.
+// This way, FaZe's two Twitter accounts (main + cs) get two separate stacked segments.
+function buildBreakdownDatasets(orgs, snapshot) {
+  const platformOrder = ["twitter", "instagram", "tiktok", "facebook"];
+  const plabels = { twitter: "X/Twitter", instagram: "Instagram", tiktok: "TikTok", facebook: "Facebook" };
+
+  // Collect all unique (platform, type) combos present in the config
+  const combos = [];
+  const seen = new Set();
+  for (const org of CONFIG.organizations) {
+    for (const acc of org.accounts) {
+      const key = `${acc.platform}__${acc.type}`;
+      if (!seen.has(key) && state.platforms[acc.platform] && state.types[acc.type]) {
+        seen.add(key);
+        combos.push({ platform: acc.platform, type: acc.type });
+      }
+    }
+  }
+
+  // Sort: group by platform order, main before secondary within each
+  combos.sort((a, b) => {
+    const pi = platformOrder.indexOf(a.platform) - platformOrder.indexOf(b.platform);
+    if (pi !== 0) return pi;
+    if (a.type === "main") return -1;
+    if (b.type === "main") return 1;
+    return a.type.localeCompare(b.type);
+  });
+
+  const datasets = combos.map(combo => {
+    const isMain = combo.type === "main";
+    return {
+      // Only main types show in the legend (secondary types are visually distinct but unlabeled)
+      label: isMain ? plabels[combo.platform] : "",
+      data: orgs.map(org => {
+        let sum = 0;
+        for (const acc of org.accounts) {
+          if (acc.platform !== combo.platform || acc.type !== combo.type) continue;
+          if (state.disabledAccounts.has(accountKey(org.id, acc.platform, acc.handle))) continue;
+          const count = snapshot?.accounts[accountKey(org.id, acc.platform, acc.handle)] || 0;
+          sum += count;
+        }
+        return sum;
+      }),
+      backgroundColor: colorForAccount(combo.platform, combo.type),
+      borderRadius: isMain ? 0 : 2,
+      borderSkipped: false,
+      _combo: `${combo.platform}__${combo.type}`,  // internal tracking
+    };
+  });
+
+  return datasets;
+}
+
+function renderBreakdownChart(orgs, totals, snapshot) {
+  const labels = orgs.map(o => o.name);
+  const datasets = buildBreakdownDatasets(orgs, snapshot);
+  const sig = datasets.map(d => d._combo).join(",");
+
+  // If the dataset structure hasn't changed, just update data in place (animated)
+  if (breakdownChart && sig === breakdownSignature) {
+    breakdownChart.data.labels = labels;
+    datasets.forEach((ds, i) => {
+      if (breakdownChart.data.datasets[i]) {
+        breakdownChart.data.datasets[i].data = ds.data;
+      }
+    });
+    breakdownChart.update("active");
+    return;
+  }
+
+  // Structure changed — rebuild the chart
+  if (breakdownChart) { breakdownChart.destroy(); breakdownChart = null; }
+  breakdownSignature = sig;
+
+  breakdownChart = new Chart(document.getElementById("breakdownChart"), {
+    type: "bar",
+    data: { labels, datasets },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: CHART_ANIM,
+      transitions: { active: { animation: CHART_ANIM } },
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: "#8b949e", boxWidth: 12, font: { size: 11 },
+            // Only show legend entries for datasets with a label (main types)
+            filter: (item) => item.text !== "",
+          },
+        },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0]?.label || "",
+            label: (ctx) => {
+              const combo = ctx.dataset._combo || "";
+              const [plat, type] = combo.split("__");
+              const platName = { twitter: "X/Twitter", instagram: "Instagram", tiktok: "TikTok", facebook: "Facebook" }[plat] || plat;
+              const suffix = type !== "main" ? ` (${type})` : "";
+              return ` ${platName}${suffix}: ${fmtFull(ctx.raw)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: "#8b949e", callback: v => fmt(v) }, grid: { color: "#21262d" } },
+        y: { stacked: true, ticks: { color: "#e6edf3", font: { size: 11 } }, grid: { display: false } },
+      },
+    },
+  });
+}
+
+function renderTrendChart() {
+  const orgId = document.getElementById("trend-org-select").value;
+  const platform = document.getElementById("trend-platform-select").value;
+  const ctx = document.getElementById("trendChart");
+
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  if (!orgId || !HISTORY.snapshots.length) return;
+
+  const org = CONFIG.organizations.find(o => o.id === orgId);
+  if (!org) return;
+
+  const dates = HISTORY.snapshots.map(s => s.date);
+  const targets = platform === "total" ? org.accounts : org.accounts.filter(a => a.platform === platform);
+
+  const datasets = targets
+    .filter(acc => state.platforms[acc.platform] && state.types[acc.type])
+    .map(acc => {
+      const key = accountKey(org.id, acc.platform, acc.handle);
+      return {
+        label: `${acc.label} (${acc.platform})`,
+        data: HISTORY.snapshots.map(s => s.accounts[key] ?? null),
+        borderColor: PLATFORM_COLORS[acc.platform],
+        backgroundColor: PLATFORM_COLORS[acc.platform] + "33",
+        fill: false, tension: 0.3, pointRadius: 4, spanGaps: true,
+      };
+    });
+
+  if (targets.length > 1 && platform === "total") {
+    datasets.push({
+      label: "Total",
+      data: HISTORY.snapshots.map(s => {
+        let sum = 0;
+        for (const acc of targets) {
+          if (!state.platforms[acc.platform]) continue;
+          sum += s.accounts[accountKey(org.id, acc.platform, acc.handle)] || 0;
+        }
+        return sum;
+      }),
+      borderColor: "#58a6ff", backgroundColor: "#58a6ff33",
+      fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2, spanGaps: true,
+    });
+  }
+
+  trendChart = new Chart(ctx, {
+    type: "line",
+    data: { labels: dates, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: "#8b949e", boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmtFull(c.raw)}` } },
+      },
+      scales: {
+        x: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } },
+        y: { ticks: { color: "#8b949e", callback: v => fmt(v) }, grid: { color: "#21262d" } },
+      },
+    },
+  });
+}
+
+// ── Table ────────────────────────────────────────────────────────────────────
+function renderTable(orgs, totals, snapshot) {
+  const tbody = document.getElementById("table-body");
+  tbody.innerHTML = "";
+  const platforms = ["twitter", "instagram", "tiktok", "facebook"];
+
+  orgs.forEach((org, idx) => {
+    const tot = totals[org.id] || { total: 0, breakdown: {} };
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="rank">${idx + 1}</td>
+      <td><span class="org-name" onclick="toggleExpand('${org.id}')">
+        <button class="expand-btn" id="expand-btn-${org.id}">+</button> ${org.name}
+      </span></td>
+      ${platforms.map(p => {
+        const enabled = state.platforms[p];
+        const val = enabled ? (tot.breakdown[p] || null) : null;
+        if (!enabled) return '<td class="platform-cell zero">—</td>';
+        if (enabled && org.accounts.some(a => a.platform === p) && val === 0)
+          return '<td class="failed-cell">no data</td>';
+        return `<td class="platform-cell ${val === 0 ? 'zero' : ''}">${fmt(val) || '—'}</td>`;
+      }).join("")}
+      <td class="total-cell">${fmt(tot.total) || "—"}</td>`;
+    tbody.appendChild(tr);
+
+    const subGroup = document.createElement("tbody");
+    subGroup.className = "sub-rows" + (state.expandedOrgs.has(org.id) ? " open" : "");
+    subGroup.id = `sub-${org.id}`;
+
+    for (const acc of org.accounts) {
+      const key = accountKey(org.id, acc.platform, acc.handle);
+      const count = snapshot?.accounts[key] ?? null;
+      const isDisabled = state.disabledAccounts.has(key);
+      const url = profileUrl(acc.platform, acc.handle);
+      const subTr = document.createElement("tr");
+      subTr.className = "sub-row";
+      subTr.innerHTML = `
+        <td colspan="2"><label class="account-toggle">
+          <input type="checkbox" ${isDisabled ? "" : "checked"} onchange="toggleAccount('${key}', this.checked)"/>
+          <span style="color:${PLATFORM_COLORS[acc.platform]};font-size:11px;font-weight:700;text-transform:uppercase;">
+            ${acc.platform === "twitter" ? "X" : acc.platform}</span>
+          <a href="${url}" target="_blank" rel="noopener" class="profile-link">@${acc.handle}</a>
+          <span style="background:#1f2937;border-radius:10px;padding:1px 7px;font-size:10px;color:#8b949e;">${acc.type}</span>
+          <a href="${url}" target="_blank" rel="noopener" class="visit-btn">&#x2197; open</a>
+        </label></td>
+        <td colspan="5" class="account-count" style="color:${isDisabled ? '#555' : '#e6edf3'}">
+          ${count !== null ? fmtFull(count) : '<span style="color:#555">—</span>'}</td>`;
+      subGroup.appendChild(subTr);
+    }
+    tbody.appendChild(subGroup);
+  });
+}
+
+function toggleExpand(orgId) {
+  const sub = document.getElementById(`sub-${orgId}`);
+  const btn = document.getElementById(`expand-btn-${orgId}`);
+  if (state.expandedOrgs.has(orgId)) {
+    state.expandedOrgs.delete(orgId);
+    sub.classList.remove("open");
+    btn.textContent = "+";
+  } else {
+    state.expandedOrgs.add(orgId);
+    sub.classList.add("open");
+    btn.textContent = "\u2212";
+  }
+}
+
+function toggleAccount(key, checked) {
+  if (checked) state.disabledAccounts.delete(key); else state.disabledAccounts.add(key);
+  render();
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function renderStats(totals, snapshot) {
+  const totalAll = Object.values(totals).reduce((s, t) => s + (t.total || 0), 0);
+  const topOrg = Object.entries(totals).sort((a, b) => b[1].total - a[1].total)[0];
+  const topName = topOrg ? CONFIG.organizations.find(o => o.id === topOrg[0])?.name : "—";
+
+  let pt = { twitter: 0, instagram: 0, tiktok: 0, facebook: 0 };
+  if (snapshot) {
+    for (const org of CONFIG.organizations) {
+      for (const acc of org.accounts) {
+        if (!state.platforms[acc.platform] || !state.types[acc.type]) continue;
+        pt[acc.platform] += snapshot.accounts[accountKey(org.id, acc.platform, acc.handle)] || 0;
+      }
+    }
+  }
+
+  const cards = [
+    { label: "Total Followers Tracked", value: fmt(totalAll) || "—" },
+    { label: "Largest Organisation", value: topName },
+    { label: "X / Twitter", value: fmt(pt.twitter) || "—" },
+    { label: "Instagram", value: fmt(pt.instagram) || "—" },
+    { label: "TikTok", value: fmt(pt.tiktok) || "—" },
+    { label: "Facebook", value: fmt(pt.facebook) || "—" },
+  ];
+  document.getElementById("stats-row").innerHTML = cards
+    .map(c => `<div class="stat-card"><div class="value">${c.value}</div><div class="label">${c.label}</div></div>`).join("");
+}
+
+// ── Sort & Filters ───────────────────────────────────────────────────────────
+function sortTable(col) {
+  if (state.sortCol === col) state.sortAsc = !state.sortAsc;
+  else { state.sortCol = col; state.sortAsc = false; }
+  document.querySelectorAll("th[data-col]").forEach(th => th.classList.toggle("sorted", th.dataset.col === col));
+  render();
+}
+
+function toggleFilter(el) {
+  const f = el.dataset.filter, v = el.dataset.value;
+  if (f === "platform") state.platforms[v] = !state.platforms[v];
+  if (f === "type") state.types[v] = !state.types[v];
+  el.classList.toggle("active");
+  // Force breakdown chart rebuild when filters change (dataset structure changes)
+  if (breakdownChart) { breakdownChart.destroy(); breakdownChart = null; breakdownSignature = ""; }
+  render();
+}
+
+function populateOrgSelect() {
+  const sel = document.getElementById("trend-org-select");
+  CONFIG.organizations.forEach(org => {
+    const opt = document.createElement("option");
+    opt.value = org.id; opt.textContent = org.name;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Main render ──────────────────────────────────────────────────────────────
+function render() {
+  const snap   = selectedSnapshot();
+  const totals = computeOrgTotals(snap);
+  const orgs   = sortedOrgs(totals);
+
+  renderStats(totals, snap);
+  renderBreakdownChart(orgs, totals, snap);
+  renderTable(orgs, totals, snap);
+  renderTrendChart();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+populateOrgSelect();
+initTimeline();
+render();
+</script>
+</body>
+</html>
